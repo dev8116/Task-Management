@@ -1,0 +1,88 @@
+/* ===========================
+   DASHBOARD PAGE
+   =========================== */
+.dashboard-page {
+  max-width: 1400px; margin: 0 auto; width: 100%;
+  animation: fadeIn 0.5s ease-out both;
+}
+.page-title {
+  font-size: 24px; font-weight: 700; color: #1e293b;
+  margin-bottom: 24px; letter-spacing: -0.3px;
+}
+
+/* ===========================
+   STAT CARDS GRID
+   =========================== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px; margin-bottom: 32px;
+}
+
+.stat-card {
+  background: #fff; border-radius: 14px; padding: 22px;
+  display: flex; align-items: center; gap: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e8ecf1;
+  border-left: 4px solid;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: default;
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card-blue { border-left-color: #3b82f6; }
+.stat-card-green { border-left-color: #10b981; }
+.stat-card-purple { border-left-color: #8b5cf6; }
+.stat-card-orange { border-left-color: #f59e0b; }
+.stat-card-yellow { border-left-color: #eab308; }
+.stat-card-red { border-left-color: #ef4444; }
+
+.stat-icon {
+  font-size: 28px; color: #667eea; display: flex; flex-shrink: 0;
+  transition: transform 0.25s ease;
+}
+.stat-card:hover .stat-icon { transform: scale(1.12); }
+.stat-value { font-size: 28px; font-weight: 800; color: #1e293b; line-height: 1; }
+.stat-label { font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 500; }
+
+/* ===========================
+   DASHBOARD SECTIONS
+   =========================== */
+.dashboard-section {
+  background: #fff; border-radius: 14px; padding: 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e8ecf1;
+  transition: all 0.2s ease;
+  animation: slideUp 0.5s ease-out both;
+}
+.dashboard-section:nth-child(2) { animation-delay: 0.1s; }
+.dashboard-section:nth-child(3) { animation-delay: 0.2s; }
+.dashboard-section h3 {
+  font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #1e293b;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.attendance-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.attendance-done { color: #10b981; font-weight: 600; }
+
+/* ===========================
+   RESPONSIVE
+   =========================== */
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .stat-card { padding: 18px; }
+  .stat-value { font-size: 24px; }
+  .stat-icon { font-size: 24px; }
+  .dashboard-section { padding: 18px; }
+}
+
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .stat-card { padding: 16px; }
+  .stat-value { font-size: 22px; }
+  .page-title { font-size: 20px; }
+}

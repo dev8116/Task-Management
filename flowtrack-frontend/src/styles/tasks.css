@@ -1,0 +1,57 @@
+.filter-group {
+  display: flex;
+  gap: 6px;
+}
+
+.filter-btn {
+  padding: 6px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 20px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+  transition: all 0.2s;
+}
+
+.filter-btn.active,
+.filter-btn:hover {
+  background: #4f46e5;
+  color: #fff;
+  border-color: #4f46e5;
+}
+
+.task-table-wrapper {
+  overflow-x: auto;
+}
+
+.task-table {
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-collapse: collapse;
+}
+
+.task-table th {
+  text-align: left;
+  padding: 14px 16px;
+  background: #f9fafb;
+  font-size: 0.8rem;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.task-table td {
+  padding: 14px 16px;
+  border-top: 1px solid #f3f4f6;
+  font-size: 0.9rem;
+}
+
+.task-table select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 0.8rem;
+}

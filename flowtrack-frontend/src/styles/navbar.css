@@ -1,0 +1,33 @@
+.navbar {
+  background: var(--bg-secondary); padding: 0.85rem 1.5rem; display: flex;
+  justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);
+  position: sticky; top: 0; z-index: 99; backdrop-filter: blur(12px); transition: var(--transition);
+}
+[data-mode="dark"] .navbar { background: rgba(26, 29, 46, 0.85); }
+
+.navbar-left { display: flex; align-items: center; gap: 14px; }
+.hamburger-btn { display: none; background: none; border: none; font-size: 1.4rem; color: var(--text-primary); cursor: pointer; padding: 6px; border-radius: var(--radius-sm); transition: var(--transition); }
+.hamburger-btn:hover { background: var(--role-accent-light); color: var(--role-accent); }
+
+.navbar-greeting h3 { font-size: 1rem; font-weight: 600; color: var(--text-primary); }
+.role-badge {
+  background: var(--role-accent-light); color: var(--role-accent); padding: 3px 12px;
+  border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+.navbar-right { display: flex; align-items: center; gap: 4px; }
+.icon-btn {
+  background: none; border: none; cursor: pointer; font-size: 1.15rem; color: var(--text-secondary);
+  padding: 9px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 6px;
+  transition: var(--transition); position: relative;
+}
+.icon-btn:hover { background: var(--role-accent-light); color: var(--role-accent); transform: translateY(-1px); }
+.notification-dot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); border: 2px solid var(--bg-secondary); }
+.logout-text { font-size: 0.8rem; font-weight: 500; }
+
+@media (max-width: 768px) {
+  .hamburger-btn { display: flex; }
+  .navbar { padding: 0.75rem 1rem; }
+  .navbar-greeting h3 { font-size: 0.9rem; }
+  .logout-text { display: none; }
+}
