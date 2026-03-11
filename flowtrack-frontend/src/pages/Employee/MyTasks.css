@@ -1,27 +1,148 @@
-.view-toggle {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-}
+/* ── Container ────────────────────────────────────────── */
+.mytasks-container { padding: 24px; max-width: 900px; margin: 0 auto; }
+.mytasks-title     { font-size: 22px; font-weight: 700; margin-bottom: 20px; color: #1e293b; }
+.mytasks-empty     { color: #888; text-align: center; margin-top: 40px; }
+.mytasks-loading   { text-align: center; padding: 40px; color: #888; }
 
-.view-toggle button {
-  padding: 6px 16px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+/* ── Task Card ────────────────────────────────────────── */
+.mytasks-list      { display: flex; flex-direction: column; gap: 16px; }
+
+.mytask-card {
   background: #fff;
-  cursor: pointer;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  border-left: 4px solid #cbd5e1;
+  transition: box-shadow 0.2s;
+}
+.mytask-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.10); }
+
+/* Left border color by status */
+.mytask-card.status-pending          { border-left-color: #f59e0b; }
+.mytask-card.status-in-progress      { border-left-color: #3b82f6; }
+.mytask-card.status-pending-approval { border-left-color: #f97316; }
+.mytask-card.status-completed        { border-left-color: #10b981; }
+
+/* ── Card Header ──────────────────────────────────────── */
+.mytask-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.mytask-title { font-size: 16px; font-weight: 600; color: #1e293b; }
+
+/* ── Status Badge ─────────────────────────────────────── */
+.mytask-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.badge-pending          { background: #fef9c3; color: #854d0e; }
+.badge-in-progress      { background: #dbeafe; color: #1e40af; }
+.badge-pending-approval { background: #fff7ed; color: #c2410c; }
+.badge-completed        { background: #dcfce7; color: #166534; }
+
+/* ── Description & Meta ───────────────────────────────── */
+.mytask-desc { font-size: 14px; color: #64748b; margin-bottom: 10px; }
+
+.mytask-meta {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 12px;
+}
+
+.priority-badge {
+  font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px;
+  text-transform: uppercase;
+}
+.priority-low    { background: #dcfce7; color: #166534; }
+.priority-medium { background: #fef9c3; color: #854d0e; }
+.priority-high   { background: #ffedd5; color: #9a3412; }
+.priority-urgent { background: #fee2e2; color: #991b1b; }
+
+.mytask-due, .mytask-project {
+  font-size: 12px; color: #64748b;
+}
+
+/* ── Rejection Note ───────────────────────────────────── */
+.mytask-rejected-note {
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 8px;
+  padding: 8px 12px;
   font-size: 13px;
-  transition: all 0.2s;
+  margin-bottom: 10px;
 }
 
-.dark .view-toggle button {
-  background: #2a2a3e;
-  border-color: #444;
-  color: #e0e0e0;
-}
+/* ── Action Buttons ───────────────────────────────────── */
+.mytask-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
-.view-toggle button.active {
-  background: #1a237e;
-  color: #fff;
-  border-color: #1a237e;
+.mytask-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  transition: opacity 0.15s;
 }
+.mytask-btn:hover    { opacity: 0.85; }
+.mytask-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-start   { background: #3b82f6; color: #fff; }
+.btn-revert  { background: #e2e8f0; color: #334155; }
+.btn-submit  { background: #10b981; color: #fff; }
+
+.mytask-waiting { font-size: 13px; color: #f97316; font-weight: 600; }
+.mytask-done    { font-size: 13px; color: #10b981; font-weight: 600; }
+
+/* ── Modal ────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 999;
+}
+.modal-box {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%; max-width: 460px;
+  padding: 0;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.modal-header h3   { font-size: 17px; font-weight: 700; color: #1e293b; margin: 0; }
+.modal-close-btn   { background: none; border: none; cursor: pointer; color: #64748b; font-size: 18px; }
+.modal-body        { padding: 20px; }
+.modal-footer      { padding: 14px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; }
+
+.modal-task-name   { font-size: 14px; margin-bottom: 8px; color: #334155; }
+.modal-hint        { font-size: 13px; color: #64748b; margin-bottom: 16px; }
+
+/* ── File Upload ──────────────────────────────────────── */
+.file-upload-area  { margin-bottom: 12px; }
+.file-upload-label {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px;
+  background: #f1f5f9;
+  border: 2px dashed #94a3b8;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #334155;
+  transition: border-color 0.2s, background 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+.file-upload-label:hover { border-color: #3b82f6; background: #eff6ff; }
+.file-selected { font-size: 13px; color: #10b981; }

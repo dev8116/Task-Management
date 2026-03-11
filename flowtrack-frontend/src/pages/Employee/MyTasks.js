@@ -1,15 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import API from '../../api/axios';
-import TaskCard from '../../components/Common/TaskCard';
-import DataTable from '../../components/Common/DataTable';
-import { toast } from 'react-toastify';
-import '../Manager/ManagerTasks.css';
-import './MyTasks.css';
+import React, { useEffect, useState } from "react";
+import api from "../../api/axios"; // adjust import path to match your project
+import { toast } from "react-toastify";
+import { FiUpload, FiX } from "react-icons/fi";
+import "./MyTasks.css";
 
-const MyTasks = () => {
-  const [tasks, setTasks] = useState([]);
-  const [filter, setFilter] = useState({ status: '', priority: '' });
-  const [view, setView] = useState('card');
+export default function MyTasks() {
+  const [tasks, setTasks]             = useState([]);
+  const [loading, setLoading]         = useState(true);
+
+  // ── Submit Completion Modal ──
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [submittingTask, setSubmittingTask]   = useState(null);
+  const [submitFile, setSubmitFile]           = useState(null);
+  const [submitting, setSubmitting]           = useState(false);
 
   useEffect(() => {
     fetchTasks();
@@ -17,118 +20,209 @@ const MyTasks = () => {
 
   const fetchTasks = async () => {
     try {
-      const { data } = await API.get('/tasks');
-      setTasks(data);
-    } catch (err) {
-      toast.error('Failed to fetch tasks');
+      const res = await api.get("/tasks");
+      setTasks(res.data.data || []);
+    } catch {
+      toast.error("Failed to load tasks");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleStatusChange = async (taskId, status) => {
+  // ── Toggle: pending ↔ in-progress ──
+  const handleStatusToggle = async (taskId, newStatus) => {
     try {
-      await API.put(`/tasks/${taskId}`, { status });
-      toast.success(`Task marked as ${status}`);
+      await api.patch(`/tasks/${taskId}/status`, { status: newStatus });
+      toast.success(`Status changed to "${newStatus}"`);
       fetchTasks();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update task');
+      toast.error(err.response?.data?.message || "Failed to update status");
     }
   };
 
-  const filteredTasks = tasks.filter((t) => {
-    if (filter.status && t.status !== filter.status) return false;
-    if (filter.priority && t.priority !== filter.priority) return false;
-    return true;
-  });
+  // ── Open Submit Completion modal ──
+  const openSubmitModal = (task) => {
+    setSubmittingTask(task);
+    setSubmitFile(null);
+    setShowSubmitModal(true);
+  };
 
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString() : 'N/A';
+  const closeSubmitModal = () => {
+    setShowSubmitModal(false);
+    setSubmittingTask(null);
+    setSubmitFile(null);
+  };
 
-  const tableColumns = [
-    { header: 'Title', accessor: 'title' },
-    { header: 'Project', render: (row) => row.project?.name || 'N/A' },
-    { header: 'Assigned By', render: (row) => row.assignedBy?.name || 'N/A' },
-    { header: 'Priority', render: (row) => <span className={`priority-badge ${row.priority?.toLowerCase()}`}>{row.priority}</span> },
-    {
-      header: 'Status',
-      render: (row) => {
-        const isOverdue = new Date(row.deadline) < new Date() && row.status !== 'Completed';
-        return <span className={`status-badge ${isOverdue ? 'overdue' : row.status?.toLowerCase().replace(/ /g, '-')}`}>
-          {isOverdue ? 'Overdue' : row.status}
-        </span>;
-      },
-    },
-    { header: 'Deadline', render: (row) => formatDate(row.deadline) },
-  ];
+  // ── Submit file to backend ──
+  const handleSubmitCompletion = async () => {
+    if (!submitFile) return toast.error("Please select a file to upload");
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("submissionFile", submitFile);
+      await api.post(`/tasks/${submittingTask._id}/submit-completion`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success("Submitted! Waiting for manager approval.");
+      closeSubmitModal();
+      fetchTasks();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Submission failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) return <div className="mytasks-loading">Loading tasks...</div>;
 
   return (
-    <div>
-      <div className="page-header"><h2>My Tasks ({tasks.length})</h2></div>
+    <div className="mytasks-container">
+      <h2 className="mytasks-title">My Tasks</h2>
 
-      <div className="view-toggle">
-        <button className={view === 'card' ? 'active' : ''} onClick={() => setView('card')}>Card View</button>
-        <button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}>Table View</button>
-      </div>
+      {tasks.length === 0 ? (
+        <p className="mytasks-empty">No tasks assigned to you yet.</p>
+      ) : (
+        <div className="mytasks-list">
+          {tasks.map((task) => (
+            <div key={task._id} className={`mytask-card status-${task.status}`}>
+              {/* ── Card Header ── */}
+              <div className="mytask-card-header">
+                <span className="mytask-title">{task.title}</span>
+                <span className={`mytask-badge badge-${task.status}`}>
+                  {task.status === "pending-approval" ? "⏳ Pending Approval" : task.status}
+                </span>
+              </div>
 
-      <div className="filter-bar">
-        <select value={filter.status} onChange={(e) => setFilter({ ...filter, status: e.target.value })}>
-          <option value="">All Status</option>
-          <option value="Pending">Pending</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Completed">Completed</option>
-        </select>
-        <select value={filter.priority} onChange={(e) => setFilter({ ...filter, priority: e.target.value })}>
-          <option value="">All Priority</option>
-          <option value="Low">Low</option>
-          <option value="Medium">Medium</option>
-          <option value="High">High</option>
-          <option value="Critical">Critical</option>
-        </select>
-        <span style={{ fontSize: '13px', color: '#888' }}>{filteredTasks.length} tasks found</span>
-      </div>
+              {/* ── Description ── */}
+              {task.description && (
+                <p className="mytask-desc">{task.description}</p>
+              )}
 
-      {filteredTasks.length === 0 ? (
-        <div style={{
-          background: '#fff', borderRadius: '12px', padding: '40px', textAlign: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-        }}>
-          <p style={{ fontSize: '16px', color: '#888' }}>No tasks found</p>
-          <p style={{ fontSize: '14px', color: '#aaa' }}>Your manager will assign tasks to you.</p>
-        </div>
-      ) : view === 'card' ? (
-        <div className="task-grid">
-          {filteredTasks.map((task) => (
-            <div key={task._id}>
-              <TaskCard task={task} onStatusChange={handleStatusChange} />
-              <div style={{ fontSize: '12px', color: '#888', marginTop: '6px' }}>
-                📁 {task.project?.name || 'N/A'} • 👤 Assigned by {task.assignedBy?.name || 'N/A'}
+              {/* ── Meta ── */}
+              <div className="mytask-meta">
+                <span className={`priority-badge priority-${task.priority}`}>
+                  {task.priority}
+                </span>
+                {task.dueDate && (
+                  <span className="mytask-due">
+                    📅 Due: {new Date(task.dueDate).toLocaleDateString()}
+                  </span>
+                )}
+                {task.project?.title && (
+                  <span className="mytask-project">📁 {task.project.title}</span>
+                )}
+              </div>
+
+              {/* ── Rejection note (if rejected) ── */}
+              {task.submissionStatus === "rejected" && task.submissionNote && (
+                <div className="mytask-rejected-note">
+                  ❌ Rejected: {task.submissionNote}
+                </div>
+              )}
+
+              {/* ── Actions ── */}
+              <div className="mytask-actions">
+
+                {/* pending → Start Task (in-progress) */}
+                {task.status === "pending" && (
+                  <button
+                    className="mytask-btn btn-start"
+                    onClick={() => handleStatusToggle(task._id, "in-progress")}
+                  >
+                    ▶ Start Task
+                  </button>
+                )}
+
+                {/* in-progress → revert to pending OR submit completion */}
+                {task.status === "in-progress" && (
+                  <>
+                    <button
+                      className="mytask-btn btn-revert"
+                      onClick={() => handleStatusToggle(task._id, "pending")}
+                    >
+                      ↩ Set Pending
+                    </button>
+                    <button
+                      className="mytask-btn btn-submit"
+                      onClick={() => openSubmitModal(task)}
+                    >
+                      <FiUpload style={{ marginRight: 4 }} />
+                      Submit Completion
+                    </button>
+                  </>
+                )}
+
+                {/* pending-approval: waiting */}
+                {task.status === "pending-approval" && (
+                  <span className="mytask-waiting">⏳ Awaiting manager approval...</span>
+                )}
+
+                {/* completed */}
+                {task.status === "completed" && (
+                  <span className="mytask-done">✅ Task Completed</span>
+                )}
               </div>
             </div>
           ))}
         </div>
-      ) : (
-        <DataTable
-          title=""
-          columns={tableColumns}
-          data={filteredTasks}
-          searchable={false}
-          actions={(row) =>
-            row.status !== 'Completed' ? (
-              <select
-                value={row.status}
-                onChange={(e) => handleStatusChange(row._id, e.target.value)}
-                style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '12px' }}
+      )}
+
+      {/* ══ Submit Completion Modal ══ */}
+      {showSubmitModal && submittingTask && (
+        <div className="modal-overlay" onClick={closeSubmitModal}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Submit Completion</h3>
+              <button className="modal-close-btn" onClick={closeSubmitModal}>
+                <FiX />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p className="modal-task-name">📋 Task: <strong>{submittingTask.title}</strong></p>
+              <p className="modal-hint">
+                Upload your work proof — PDF, Word document (.doc / .docx), or a screenshot (JPG / PNG).
+              </p>
+
+              <div className="file-upload-area">
+                <label htmlFor="submissionFileInput" className="file-upload-label">
+                  <FiUpload size={20} />
+                  <span>{submitFile ? submitFile.name : "Choose File"}</span>
+                </label>
+                <input
+                  id="submissionFileInput"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp"
+                  style={{ display: "none" }}
+                  onChange={(e) => setSubmitFile(e.target.files[0])}
+                />
+              </div>
+
+              {submitFile && (
+                <p className="file-selected">
+                  ✅ Selected: <strong>{submitFile.name}</strong>{" "}
+                  <span style={{ color: "#888", fontSize: "12px" }}>
+                    ({(submitFile.size / 1024).toFixed(1)} KB)
+                  </span>
+                </p>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button className="mytask-btn btn-revert" onClick={closeSubmitModal}>
+                Cancel
+              </button>
+              <button
+                className="mytask-btn btn-submit"
+                onClick={handleSubmitCompletion}
+                disabled={!submitFile || submitting}
               >
-                <option value="Pending">Pending</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-              </select>
-            ) : (
-              <span style={{ color: '#2e7d32', fontSize: '12px', fontWeight: 600 }}>✓ Done</span>
-            )
-          }
-        />
+                {submitting ? "Uploading..." : "Submit for Approval"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
-};
-
-export default MyTasks;
+}

@@ -1,46 +1,51 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import './App.css';
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import "./App.css";
 
 // Auth Pages
-import Login from './pages/Auth/Login';
-import ForgotPassword from './pages/Auth/ForgotPassword';
+import Login from "./pages/Auth/Login";
+import ForgotPassword from "./pages/Auth/ForgotPassword";
 
 // Profile Page
-import ProfilePage from './pages/Profile/ProfilePage';
+import ProfilePage from "./pages/Profile/ProfilePage";
 
 // Layout
-import Layout from './components/Layout/Layout';
-import ProtectedRoute from './components/Common/ProtectedRoute';
+import Layout from "./components/Layout/Layout";
+import ProtectedRoute from "./components/Common/ProtectedRoute";
 
 // Admin Pages
-import AdminDashboard from './pages/Admin/AdminDashboard';
-import UserManagement from './pages/Admin/UserManagement';
-import ProjectManagement from './pages/Admin/ProjectManagement';
-import AllTasks from './pages/Admin/AllTasks';
-import AttendanceManagement from './pages/Admin/AttendanceManagement';
-import LeaveManagement from './pages/Admin/LeaveManagement';
-import ActivityLogs from './pages/Admin/ActivityLogs';
-import Reports from './pages/Admin/Reports';
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import UserManagement from "./pages/Admin/UserManagement";
+import ProjectManagement from "./pages/Admin/ProjectManagement";
+import AllTasks from "./pages/Admin/AllTasks";
+import AttendanceManagement from "./pages/Admin/AttendanceManagement";
+import LeaveManagement from "./pages/Admin/LeaveManagement";
+import ActivityLogs from "./pages/Admin/ActivityLogs";
+import Reports from "./pages/Admin/Reports";
 
 // Manager Pages
-import ManagerDashboard from './pages/Manager/ManagerDashboard';
-import ManagerProjects from './pages/Manager/ManagerProjects';
-import ManagerTasks from './pages/Manager/ManagerTasks';
-import TeamPerformance from './pages/Manager/TeamPerformance';
-import TeamAttendance from './pages/Manager/TeamAttendance';
-import ManagerLeaves from './pages/Manager/ManagerLeaves';
+import ManagerDashboard from "./pages/Manager/ManagerDashboard";
+import ManagerProjects from "./pages/Manager/ManagerProjects";
+import ManagerTasks from "./pages/Manager/ManagerTasks";
+import TeamPerformance from "./pages/Manager/TeamPerformance";
+import TeamAttendance from "./pages/Manager/TeamAttendance";
+import ManagerLeaves from "./pages/Manager/ManagerLeaves";
 
 // Employee Pages
-import EmployeeDashboard from './pages/Employee/EmployeeDashboard';
-import MyTasks from './pages/Employee/MyTasks';
-import MyAttendance from './pages/Employee/MyAttendance';
-import ApplyLeave from './pages/Employee/ApplyLeave';
-import MyPerformance from './pages/Employee/MyPerformance';
+import EmployeeDashboard from "./pages/Employee/EmployeeDashboard";
+import MyTasks from "./pages/Employee/MyTasks";
+import MyAttendance from "./pages/Employee/MyAttendance";
+import ApplyLeave from "./pages/Employee/ApplyLeave";
+import MyPerformance from "./pages/Employee/MyPerformance";
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
@@ -48,22 +53,36 @@ const AppRoutes = () => {
   if (loading) return <div className="loading-screen">Loading...</div>;
 
   const getDashboardRedirect = () => {
-    if (!user) return '/login';
+    if (!user) return "/login";
     switch (user.role) {
-      case 'admin': return '/admin/dashboard';
-      case 'manager': return '/manager/dashboard';
-      case 'employee': return '/employee/dashboard';
-      default: return '/login';
+      case "admin":
+        return "/admin/dashboard";
+      case "manager":
+        return "/manager/dashboard";
+      case "employee":
+        return "/employee/dashboard";
+      default:
+        return "/login";
     }
   };
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to={getDashboardRedirect()} /> : <Login />} />
+      <Route
+        path="/login"
+        element={user ? <Navigate to={getDashboardRedirect()} /> : <Login />}
+      />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
       {/* ─── Admin Routes ─────────────────────────────────── */}
-      <Route path="/admin" element={<ProtectedRoute roles={['admin']}><Layout /></ProtectedRoute>}>
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute roles={["admin"]}>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="users" element={<UserManagement />} />
         <Route path="projects" element={<ProjectManagement />} />
@@ -76,7 +95,14 @@ const AppRoutes = () => {
       </Route>
 
       {/* ─── Manager Routes ───────────────────────────────── */}
-      <Route path="/manager" element={<ProtectedRoute roles={['manager']}><Layout /></ProtectedRoute>}>
+      <Route
+        path="/manager"
+        element={
+          <ProtectedRoute roles={["manager"]}>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="dashboard" element={<ManagerDashboard />} />
         <Route path="projects" element={<ManagerProjects />} />
         <Route path="tasks" element={<ManagerTasks />} />
@@ -87,7 +113,14 @@ const AppRoutes = () => {
       </Route>
 
       {/* ─── Employee Routes ──────────────────────────────── */}
-      <Route path="/employee" element={<ProtectedRoute roles={['employee']}><Layout /></ProtectedRoute>}>
+      <Route
+        path="/employee"
+        element={
+          <ProtectedRoute roles={["employee"]}>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="dashboard" element={<EmployeeDashboard />} />
         <Route path="tasks" element={<MyTasks />} />
         <Route path="attendance" element={<MyAttendance />} />
@@ -95,6 +128,26 @@ const AppRoutes = () => {
         <Route path="performance" element={<MyPerformance />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
+      <Route
+        path="/my-tasks"
+        element={
+          <ProtectedRoute allowedRoles={["employee"]}>
+            <Layout>
+              <MyTasks />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/tasks"
+        element={
+          <ProtectedRoute allowedRoles={["manager"]}>
+            <Layout>
+              <ManagerTasks />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to={getDashboardRedirect()} />} />
