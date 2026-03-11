@@ -73,6 +73,78 @@ exports.getMyTeam = async (req, res) => {
   }
 };
 
+// @desc    Get logged-in user's profile
+// @route   GET /api/users/profile/me
+exports.getMyProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select('-password -resetPasswordToken -resetPasswordExpires')
+      .populate('manager', 'name email department');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update logged-in user's own profile (all editable fields)
+// @route   PUT /api/users/update-profile
+exports.updateMyProfile = async (req, res) => {
+  try {
+    const { name, email, phone, department, oldPassword, newPassword } = req.body;
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // --- Email uniqueness check ---
+    if (email && email.toLowerCase() !== user.email) {
+      const emailExists = await User.findOne({ email: email.toLowerCase() });
+      if (emailExists) {
+        return res.status(400).json({ message: 'Email already in use by another account' });
+      }
+      user.email = email.toLowerCase();
+    }
+
+    // --- Update basic fields ---
+    if (name && name.trim()) user.name = name.trim();
+    if (phone !== undefined) user.phone = phone;
+    if (department !== undefined) user.department = department;
+
+    // --- Password change (optional) ---
+    if (newPassword) {
+      if (!oldPassword) {
+        return res.status(400).json({ message: 'Please provide your current password to change it' });
+      }
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Current password is incorrect' });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: 'New password must be at least 6 characters' });
+      }
+      user.password = await bcrypt.hash(newPassword, 12);
+    }
+
+    await user.save();
+
+    // Return updated user without sensitive fields
+    const updatedUser = await User.findById(user._id)
+      .select('-password -resetPasswordToken -resetPasswordExpires')
+      .populate('manager', 'name email department');
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: updatedUser,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Create user
 // @route   POST /api/users
 exports.createUser = async (req, res) => {
@@ -105,34 +177,27 @@ exports.createUser = async (req, res) => {
 
     await ActivityLog.create({
       user: req.user._id,
-      action: 'CREATE_USER',
-      description: `Created ${role} "${user.name}"${manager ? ' and assigned to manager' : ''}`,
-      entity: 'User',
-      entityId: user._id,
+      action: 'Created User',
+      details: `Created user: ${name} (${role})`,
     });
 
-    const returnUser = await User.findById(user._id)
-      .select('-password')
-      .populate('manager', 'name email');
-    res.status(201).json(returnUser);
+    const createdUser = await User.findById(user._id).select('-password');
+    res.status(201).json(createdUser);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Update user
+// @desc    Update user (Admin only)
 // @route   PUT /api/users/:id
 exports.updateUser = async (req, res) => {
   try {
-    const { name, email, role, department, phone, isActive, manager } = req.body;
+    const { name, email, password, role, department, phone, manager, isActive } = req.body;
 
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-
-    const oldManagerId = user.manager ? user.manager.toString() : null;
-    const newManagerId = manager || null;
 
     if (name) user.name = name;
     if (email) user.email = email;
@@ -140,44 +205,28 @@ exports.updateUser = async (req, res) => {
     if (department !== undefined) user.department = department;
     if (phone !== undefined) user.phone = phone;
     if (isActive !== undefined) user.isActive = isActive;
+    if (password) user.password = await bcrypt.hash(password, 12);
 
-    // Handle manager reassignment for employees
-    if (user.role === 'employee' && manager !== undefined) {
-      // Remove from old manager's teamMembers
-      if (oldManagerId && oldManagerId !== newManagerId) {
-        await User.findByIdAndUpdate(oldManagerId, {
-          $pull: { teamMembers: user._id },
-        });
+    if (role === 'employee' && manager) {
+      user.manager = manager;
+      await User.findByIdAndUpdate(manager, { $addToSet: { teamMembers: user._id } });
+    } else if (role !== 'employee') {
+      if (user.manager) {
+        await User.findByIdAndUpdate(user.manager, { $pull: { teamMembers: user._id } });
       }
-
-      // Add to new manager's teamMembers
-      if (newManagerId && newManagerId !== oldManagerId) {
-        await User.findByIdAndUpdate(newManagerId, {
-          $addToSet: { teamMembers: user._id },
-        });
-      }
-
-      user.manager = newManagerId;
-    }
-
-    if (req.body.password) {
-      user.password = await bcrypt.hash(req.body.password, 12);
+      user.manager = null;
     }
 
     await user.save();
 
     await ActivityLog.create({
       user: req.user._id,
-      action: 'UPDATE_USER',
-      description: `Updated user "${user.name}"`,
-      entity: 'User',
-      entityId: user._id,
+      action: 'Updated User',
+      details: `Updated user: ${user.name}`,
     });
 
-    const updatedUser = await User.findById(user._id)
-      .select('-password')
-      .populate('manager', 'name email')
-      .populate('teamMembers', 'name email department');
+    const updatedUser = await User.findById(user._id).select('-password')
+      .populate('manager', 'name email');
     res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -193,34 +242,18 @@ exports.deleteUser = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (user.email === 'admin@flowtrack.com') {
-      return res.status(400).json({ message: 'Cannot delete default admin account' });
+    if (user.manager) {
+      await User.findByIdAndUpdate(user.manager, { $pull: { teamMembers: user._id } });
     }
 
-    // If deleting an employee, remove from manager's teamMembers
-    if (user.role === 'employee' && user.manager) {
-      await User.findByIdAndUpdate(user.manager, {
-        $pull: { teamMembers: user._id },
-      });
-    }
-
-    // If deleting a manager, unset manager field from all their employees
-    if (user.role === 'manager') {
-      await User.updateMany(
-        { manager: user._id },
-        { $set: { manager: null } }
-      );
-    }
+    await User.findByIdAndDelete(req.params.id);
 
     await ActivityLog.create({
       user: req.user._id,
-      action: 'DELETE_USER',
-      description: `Deleted user "${user.name}"`,
-      entity: 'User',
-      entityId: user._id,
+      action: 'Deleted User',
+      details: `Deleted user: ${user.name} (${user.email})`,
     });
 
-    await User.findByIdAndDelete(req.params.id);
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

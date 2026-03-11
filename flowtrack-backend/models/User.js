@@ -12,6 +12,8 @@ const userSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     manager: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     teamMembers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    resetPasswordToken: { type: String, default: null },
+    resetPasswordExpires: { type: Date, default: null },
   },
   { timestamps: true }
 );

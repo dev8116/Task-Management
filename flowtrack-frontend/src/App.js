@@ -10,6 +10,9 @@ import './App.css';
 import Login from './pages/Auth/Login';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 
+// Profile Page
+import ProfilePage from './pages/Profile/ProfilePage';
+
 // Layout
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/Common/ProtectedRoute';
@@ -59,7 +62,7 @@ const AppRoutes = () => {
       <Route path="/login" element={user ? <Navigate to={getDashboardRedirect()} /> : <Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      {/* Admin Routes */}
+      {/* ─── Admin Routes ─────────────────────────────────── */}
       <Route path="/admin" element={<ProtectedRoute roles={['admin']}><Layout /></ProtectedRoute>}>
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="users" element={<UserManagement />} />
@@ -69,9 +72,10 @@ const AppRoutes = () => {
         <Route path="leaves" element={<LeaveManagement />} />
         <Route path="activity-logs" element={<ActivityLogs />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
 
-      {/* Manager Routes */}
+      {/* ─── Manager Routes ───────────────────────────────── */}
       <Route path="/manager" element={<ProtectedRoute roles={['manager']}><Layout /></ProtectedRoute>}>
         <Route path="dashboard" element={<ManagerDashboard />} />
         <Route path="projects" element={<ManagerProjects />} />
@@ -79,34 +83,35 @@ const AppRoutes = () => {
         <Route path="team-performance" element={<TeamPerformance />} />
         <Route path="team-attendance" element={<TeamAttendance />} />
         <Route path="leaves" element={<ManagerLeaves />} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
 
-      {/* Employee Routes */}
+      {/* ─── Employee Routes ──────────────────────────────── */}
       <Route path="/employee" element={<ProtectedRoute roles={['employee']}><Layout /></ProtectedRoute>}>
         <Route path="dashboard" element={<EmployeeDashboard />} />
         <Route path="tasks" element={<MyTasks />} />
         <Route path="attendance" element={<MyAttendance />} />
         <Route path="leaves" element={<ApplyLeave />} />
         <Route path="performance" element={<MyPerformance />} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
 
+      {/* Default redirect */}
       <Route path="/" element={<Navigate to={getDashboardRedirect()} />} />
       <Route path="*" element={<Navigate to={getDashboardRedirect()} />} />
     </Routes>
   );
 };
 
-const App = () => {
-  return (
-    <AuthProvider>
-      <ThemeProvider>
-        <Router>
-          <ToastContainer position="top-right" autoClose={3000} />
-          <AppRoutes />
-        </Router>
-      </ThemeProvider>
-    </AuthProvider>
-  );
-};
+const App = () => (
+  <Router>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppRoutes />
+        <ToastContainer position="top-right" autoClose={3000} />
+      </AuthProvider>
+    </ThemeProvider>
+  </Router>
+);
 
 export default App;

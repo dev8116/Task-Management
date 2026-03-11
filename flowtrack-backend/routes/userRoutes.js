@@ -8,10 +8,17 @@ const {
   deleteUser,
   getTeamMembers,
   getMyTeam,
+  getMyProfile,
+  updateMyProfile,
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
 
+// ─── Profile Routes (any authenticated user) ───────────────────────────────
+router.get('/profile/me', protect, getMyProfile);
+router.put('/update-profile', protect, updateMyProfile);
+
+// ─── Admin / Manager Routes ─────────────────────────────────────────────────
 router.get('/', protect, authorize('admin', 'manager'), getAllUsers);
 router.get('/my-team', protect, authorize('manager'), getMyTeam);
 router.get('/team/:managerId', protect, authorize('admin', 'manager'), getTeamMembers);

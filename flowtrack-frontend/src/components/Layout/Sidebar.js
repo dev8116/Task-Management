@@ -11,39 +11,42 @@ const Sidebar = ({ isOpen, onClose }) => {
   const { user } = useAuth();
 
   const adminLinks = [
-    { to: '/admin/dashboard', label: 'Dashboard', icon: <FiHome /> },
-    { to: '/admin/users', label: 'User Management', icon: <FiUsers /> },
-    { to: '/admin/projects', label: 'Projects', icon: <FiFolder /> },
-    { to: '/admin/tasks', label: 'All Tasks', icon: <FiCheckSquare /> },
-    { to: '/admin/attendance', label: 'Attendance', icon: <FiClock /> },
-    { to: '/admin/leaves', label: 'Leave Management', icon: <FiCalendar /> },
-    { to: '/admin/activity-logs', label: 'Activity Logs', icon: <FiActivity /> },
-    { to: '/admin/reports', label: 'Reports', icon: <FiBarChart2 /> },
+    { to: '/admin/dashboard',      label: 'Dashboard',       icon: <FiHome /> },
+    { to: '/admin/users',          label: 'User Management', icon: <FiUsers /> },
+    { to: '/admin/projects',       label: 'Projects',        icon: <FiFolder /> },
+    { to: '/admin/tasks',          label: 'All Tasks',       icon: <FiCheckSquare /> },
+    { to: '/admin/attendance',     label: 'Attendance',      icon: <FiClock /> },
+    { to: '/admin/leaves',         label: 'Leave Management',icon: <FiCalendar /> },
+    { to: '/admin/activity-logs',  label: 'Activity Logs',   icon: <FiActivity /> },
+    { to: '/admin/reports',        label: 'Reports',         icon: <FiBarChart2 /> },
+    { to: '/admin/profile',        label: 'My Profile',      icon: <FiUser /> },
   ];
 
   const managerLinks = [
-    { to: '/manager/dashboard', label: 'Dashboard', icon: <FiHome /> },
-    { to: '/manager/projects', label: 'My Projects', icon: <FiFolder /> },
-    { to: '/manager/tasks', label: 'Tasks', icon: <FiCheckSquare /> },
-    { to: '/manager/team-performance', label: 'Team Performance', icon: <FiBarChart2 /> },
-    { to: '/manager/team-attendance', label: 'Team Attendance', icon: <FiClock /> },
-    { to: '/manager/leaves', label: 'Leave Requests', icon: <FiCalendar /> },
+    { to: '/manager/dashboard',         label: 'Dashboard',        icon: <FiHome /> },
+    { to: '/manager/projects',          label: 'My Projects',      icon: <FiFolder /> },
+    { to: '/manager/tasks',             label: 'Tasks',            icon: <FiCheckSquare /> },
+    { to: '/manager/team-performance',  label: 'Team Performance', icon: <FiBarChart2 /> },
+    { to: '/manager/team-attendance',   label: 'Team Attendance',  icon: <FiClock /> },
+    { to: '/manager/leaves',            label: 'Leave Requests',   icon: <FiCalendar /> },
+    { to: '/manager/profile',           label: 'My Profile',       icon: <FiUser /> },
   ];
 
   const employeeLinks = [
-    { to: '/employee/dashboard', label: 'Dashboard', icon: <FiHome /> },
-    { to: '/employee/tasks', label: 'My Tasks', icon: <FiCheckSquare /> },
-    { to: '/employee/attendance', label: 'Attendance', icon: <FiClock /> },
-    { to: '/employee/leaves', label: 'Leaves', icon: <FiCalendar /> },
+    { to: '/employee/dashboard',   label: 'Dashboard',      icon: <FiHome /> },
+    { to: '/employee/tasks',       label: 'My Tasks',       icon: <FiCheckSquare /> },
+    { to: '/employee/attendance',  label: 'Attendance',     icon: <FiClock /> },
+    { to: '/employee/leaves',      label: 'Leaves',         icon: <FiCalendar /> },
     { to: '/employee/performance', label: 'My Performance', icon: <FiBarChart2 /> },
+    { to: '/employee/profile',     label: 'My Profile',     icon: <FiUser /> },
   ];
 
   const getLinks = () => {
     switch (user?.role) {
-      case 'admin': return adminLinks;
-      case 'manager': return managerLinks;
+      case 'admin':    return adminLinks;
+      case 'manager':  return managerLinks;
       case 'employee': return employeeLinks;
-      default: return [];
+      default:         return [];
     }
   };
 
@@ -69,15 +72,6 @@ const Sidebar = ({ isOpen, onClose }) => {
             </NavLink>
           ))}
         </nav>
-        <div style={{ padding: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 'auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <FiUser />
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 600 }}>{user?.name}</div>
-              <div style={{ fontSize: '11px', opacity: 0.7 }}>{user?.role}</div>
-            </div>
-          </div>
-        </div>
       </aside>
     </>
   );
