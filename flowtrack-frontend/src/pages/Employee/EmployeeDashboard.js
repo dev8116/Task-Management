@@ -9,6 +9,19 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import './EmployeeDashboard.css';
 
+const normalizeList = (res) => {
+  // Some endpoints return { data: [...] } or { data: { data: [...] } } or [...], so normalize to array
+  if (!res) return [];
+  const candidate = res?.data?.data ?? res?.data ?? res;
+  return Array.isArray(candidate) ? candidate : [];
+};
+
+const normalizeObject = (res) => {
+  // Normalize single-object responses to object or null
+  if (!res) return null;
+  return res?.data?.data ?? res?.data ?? res ?? null;
+};
+
 const EmployeeDashboard = () => {
   const { user } = useAuth();
   const [performance, setPerformance] = useState({});
@@ -19,6 +32,7 @@ const EmployeeDashboard = () => {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
@@ -28,11 +42,18 @@ const EmployeeDashboard = () => {
         API.get('/tasks'),
         API.get('/attendance/today'),
       ]);
-      setPerformance(perfRes.data);
-      setTasks(taskRes.data);
-      setTodayAttendance(attRes.data);
+
+      const perfData = normalizeObject(perfRes) ?? {};
+      const tasksData = normalizeList(taskRes);
+      const attData = normalizeObject(attRes);
+
+      setPerformance(perfData);
+      setTasks(tasksData);
+      setTodayAttendance(attData);
     } catch (err) {
-      console.error('Failed to load dashboard');
+      console.error('Failed to load dashboard', err);
+      toast.error('Failed to load dashboard data');
+      // keep current state but stop loading
     } finally {
       setLoading(false);
     }
@@ -60,15 +81,24 @@ const EmployeeDashboard = () => {
 
   if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>;
 
-  const upcomingDeadlines = tasks
+  // Ensure tasks is an array before using array methods
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+
+  const upcomingDeadlines = safeTasks
     .filter((t) => {
+      if (!t) return false;
       if (t.status === 'Completed') return false;
-      const deadline = new Date(t.deadline);
+      const deadline = t.deadline ? new Date(t.deadline) : null;
+      if (!deadline || isNaN(deadline.getTime())) return false;
       const now = new Date();
       const diff = (deadline - now) / (1000 * 60 * 60 * 24);
       return diff <= 3;
     })
-    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+    .sort((a, b) => {
+      const da = a.deadline ? new Date(a.deadline) : new Date(0);
+      const db = b.deadline ? new Date(b.deadline) : new Date(0);
+      return da - db;
+    });
 
   const taskChartData = [
     { name: 'Pending', value: performance.pendingTasks || 0 },
@@ -99,7 +129,9 @@ const EmployeeDashboard = () => {
         ) : (
           <button className="quick-action-btn checked-out" disabled>✅ Done for today</button>
         )}
-        <button className="quick-action-btn" onClick={() => navigate('/employee/tasks')}><FiCheckSquare /> My Tasks ({tasks.length})</button>
+        <button className="quick-action-btn" onClick={() => navigate('/employee/tasks')}>
+          <FiCheckSquare /> My Tasks ({safeTasks.length})
+        </button>
         <button className="quick-action-btn" onClick={() => navigate('/employee/leaves')}><FiClock /> Apply Leave</button>
         <button className="quick-action-btn" onClick={() => navigate('/employee/performance')}><FiTrendingUp /> Performance</button>
       </div>
@@ -110,10 +142,10 @@ const EmployeeDashboard = () => {
           <h4><FiAlertCircle style={{ verticalAlign: 'middle' }} /> Upcoming Deadlines ({upcomingDeadlines.length})</h4>
           <ul>
             {upcomingDeadlines.map((t) => (
-              <li key={t._id}>
+              <li key={t._id || t.id || Math.random()}>
                 <span className="task-name">{t.title} — <small style={{ color: '#888' }}>{t.project?.name || ''}</small></span>
                 <span className="task-date">
-                  {new Date(t.deadline) < new Date() ? 'OVERDUE' : new Date(t.deadline).toLocaleDateString()}
+                  {t.deadline && new Date(t.deadline) < new Date() ? 'OVERDUE' : (t.deadline ? new Date(t.deadline).toLocaleDateString() : 'N/A')}
                 </span>
               </li>
             ))}
@@ -130,7 +162,7 @@ const EmployeeDashboard = () => {
       </div>
 
       {/* Recent Tasks */}
-      {tasks.length > 0 && (
+      {safeTasks.length > 0 && (
         <div style={{
           background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '24px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
@@ -146,15 +178,15 @@ const EmployeeDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {tasks.slice(0, 5).map((t) => (
-                <tr key={t._id}>
-                  <td style={{ padding: '10px 8px', fontSize: '14px', borderBottom: '1px solid #f5f5f5' }}>{t.title}</td>
+              {safeTasks.slice(0, 5).map((t) => (
+                <tr key={t._id || t.id || Math.random()}>
+                  <td style={{ padding: '10px 8px', fontSize: '14px', borderBottom: '1px solid #f5f5f5' }}>{t.title || 'Untitled'}</td>
                   <td style={{ padding: '10px 8px', fontSize: '13px', color: '#666', borderBottom: '1px solid #f5f5f5' }}>{t.project?.name || 'N/A'}</td>
                   <td style={{ padding: '10px 8px', borderBottom: '1px solid #f5f5f5' }}>
-                    <span className={`status-badge ${t.status?.toLowerCase().replace(/ /g, '-')}`}>{t.status}</span>
+                    <span className={`status-badge ${String(t.status || '').toLowerCase().replace(/ /g, '-')}`}>{t.status || 'N/A'}</span>
                   </td>
                   <td style={{ padding: '10px 8px', fontSize: '13px', borderBottom: '1px solid #f5f5f5' }}>
-                    {new Date(t.deadline).toLocaleDateString()}
+                    {t.deadline ? new Date(t.deadline).toLocaleDateString() : 'N/A'}
                   </td>
                 </tr>
               ))}

@@ -20,13 +20,21 @@ const taskSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+
+    // ✅ Single assignedTo field (used by original Task-Management structure)
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    // ✅ Array field (used by FlowTrack multi-assign structure)
     assignedEmployees: [
       { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     ],
 
     status: {
       type: String,
-      // NEW: added "pending-approval" state
       enum: ["pending", "in-progress", "pending-approval", "completed"],
       default: "pending",
     },
@@ -35,27 +43,30 @@ const taskSchema = new mongoose.Schema(
       enum: ["low", "medium", "high", "urgent"],
       default: "medium",
     },
-    dueDate:   { type: Date, default: null },
+
+    // ✅ Both deadline field names stored
+    dueDate:  { type: Date, default: null },
+    deadline: { type: Date, default: null },
+
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
     },
 
-    // ── NEW: Completion Submission ──────────────────────────────
+    // ── Completion Submission ──────────────────────────────────
     submissionFile: {
-      filename:    { type: String, default: null }, // original file name
-      path:        { type: String, default: null }, // stored path on server
-      mimetype:    { type: String, default: null },
-      uploadedAt:  { type: Date,   default: null },
+      filename:   { type: String, default: null },
+      path:       { type: String, default: null },
+      mimetype:   { type: String, default: null },
+      uploadedAt: { type: Date,   default: null },
     },
-    // "none" | "pending" | "approved" | "rejected"
     submissionStatus: {
       type: String,
       enum: ["none", "pending", "approved", "rejected"],
       default: "none",
     },
-    submissionNote: { type: String, default: "" }, // manager's rejection note
+    submissionNote: { type: String, default: "" },
   },
   { timestamps: true }
 );

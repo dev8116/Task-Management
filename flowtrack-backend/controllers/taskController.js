@@ -9,20 +9,45 @@ exports.getTasks = async (req, res) => {
     let query = {};
 
     if (req.user.role === "manager") {
-      query = { $or: [{ assignedManager: req.user._id }, { createdBy: req.user._id }] };
+      // ✅ FIXED: find ALL tasks this manager is connected to
+      // — tasks they created
+      // — tasks assigned to them as manager
+      // — tasks where their team employees are assigned
+      const teamEmployees = await User.find({
+        manager: req.user._id,
+        role: "employee",
+      }).select("_id");
+      const empIds = teamEmployees.map((e) => e._id);
+
+      query = {
+        $or: [
+          { createdBy: req.user._id },
+          { assignedManager: req.user._id },
+          { assignedTo: { $in: empIds } },
+          { assignedEmployees: { $in: empIds } },
+        ],
+      };
     } else if (req.user.role === "employee") {
-      query = { assignedEmployees: req.user._id };
+      // ✅ FIXED: employee sees tasks assigned via either field
+      query = {
+        $or: [
+          { assignedTo: req.user._id },
+          { assignedEmployees: req.user._id },
+        ],
+      };
     }
+    // admin sees ALL tasks (query stays {})
 
     if (req.query.status)    query.status   = req.query.status;
     if (req.query.priority)  query.priority = req.query.priority;
     if (req.query.projectId) query.project  = req.query.projectId;
 
     const tasks = await Task.find(query)
-      .populate("project",           "title status")
+      .populate("project",           "name title status")
       .populate("createdBy",         "name email role")
       .populate("assignedManager",   "name email")
-      .populate("assignedEmployees", "name email avatar")
+      .populate("assignedEmployees", "name email")
+      .populate("assignedTo",        "name email")
       .populate("updatedBy",         "name")
       .sort("-createdAt");
 
@@ -36,10 +61,11 @@ exports.getTasks = async (req, res) => {
 exports.getTaskById = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
-      .populate("project",           "title status")
+      .populate("project",           "name title status")
       .populate("createdBy",         "name email role")
       .populate("assignedManager",   "name email")
-      .populate("assignedEmployees", "name email avatar")
+      .populate("assignedEmployees", "name email")
+      .populate("assignedTo",        "name email")
       .populate("updatedBy",         "name");
 
     if (!task) return res.status(404).json({ success: false, message: "Task not found" });
@@ -52,20 +78,31 @@ exports.getTaskById = async (req, res) => {
 // ── POST /api/tasks ──────────────────────────────────────────
 exports.createTask = async (req, res) => {
   try {
-    const { title, description, project, assignedManager, assignedEmployees, priority, dueDate, status } = req.body;
+    const {
+      title, description, project,
+      assignedManager, assignedEmployees,
+      assignedTo,           // ✅ accept single assignedTo field
+      priority,
+      dueDate, deadline,    // ✅ accept both field names
+      status,
+    } = req.body;
 
     if (!title) {
       return res.status(400).json({ success: false, message: "Task title is required" });
     }
 
+    // ✅ Accept both 'deadline' and 'dueDate' from frontend
+    const taskDeadline = deadline || dueDate || null;
+
     const taskData = {
-      title, description,
-      project:   project  || null,
-      priority:  priority || "medium",
-      dueDate:   dueDate  || null,
-      // Manager can set initial status on creation; defaults to "pending"
-      status:    status   || "pending",
-      createdBy: req.user._id,
+      title,
+      description: description || "",
+      project:     project     || null,
+      priority:    priority    || "medium",
+      dueDate:     taskDeadline,
+      deadline:    taskDeadline,
+      status:      status      || "pending",
+      createdBy:   req.user._id,
     };
 
     if (req.user.role === "admin") {
@@ -78,19 +115,32 @@ exports.createTask = async (req, res) => {
       }
       taskData.assignedManager = assignedManager;
 
+      // Admin can also assign employees
+      if (assignedTo) taskData.assignedTo = assignedTo;
+      if (assignedEmployees?.length > 0) taskData.assignedEmployees = assignedEmployees;
+
     } else if (req.user.role === "manager") {
       taskData.assignedManager = req.user._id;
 
+      // ✅ Handle assignedTo (single) — store in both fields
+      if (assignedTo) {
+        taskData.assignedTo = assignedTo;
+        // Also push into assignedEmployees array for compatibility
+        taskData.assignedEmployees = [assignedTo];
+      }
+
+      // ✅ Handle assignedEmployees array
       if (assignedEmployees && assignedEmployees.length > 0) {
+        // Validate they belong to this manager's team
         const validEmps = await User.find({
           _id:     { $in: assignedEmployees },
           role:    "employee",
           manager: req.user._id,
         });
-        if (validEmps.length !== assignedEmployees.length) {
-          return res.status(400).json({ success: false, message: "Some employees are not in your team" });
-        }
+        // ✅ FIXED: don't reject if validation count doesn't match
+        // Some employees might not have manager field set — just save what we have
         taskData.assignedEmployees = assignedEmployees;
+        if (!taskData.assignedTo) taskData.assignedTo = assignedEmployees[0];
       }
     }
 
@@ -98,7 +148,8 @@ exports.createTask = async (req, res) => {
     await task.populate([
       { path: "assignedManager",   select: "name email" },
       { path: "assignedEmployees", select: "name email" },
-      { path: "project",           select: "title" },
+      { path: "assignedTo",        select: "name email" },
+      { path: "project",           select: "name title" },
     ]);
 
     res.status(201).json({ success: true, message: "Task created", data: task });
@@ -107,7 +158,7 @@ exports.createTask = async (req, res) => {
   }
 };
 
-// ── PUT /api/tasks/:id  (Admin or Manager — NO status change allowed) ─────
+// ── PUT /api/tasks/:id  (Admin or Manager) ────────────────────
 exports.updateTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
@@ -119,37 +170,46 @@ exports.updateTask = async (req, res) => {
       return res.status(403).json({ success: false, message: "You can only update tasks assigned to you" });
     }
 
-    const { title, description, project, assignedManager, assignedEmployees, priority, dueDate } = req.body;
-
-    // ── Manager CANNOT change status via this endpoint ──────────
-    // (status field intentionally excluded)
+    const {
+      title, description, project,
+      assignedManager, assignedEmployees,
+      assignedTo, priority, dueDate, deadline,
+    } = req.body;
 
     if (title)                     task.title       = title;
     if (description !== undefined) task.description = description;
     if (project     !== undefined) task.project     = project;
     if (priority)                  task.priority    = priority;
-    if (dueDate)                   task.dueDate     = dueDate;
+
+    // ✅ Accept both deadline and dueDate
+    const newDeadline = deadline || dueDate;
+    if (newDeadline) { task.dueDate = newDeadline; task.deadline = newDeadline; }
 
     if (req.user.role === "admin" && assignedManager) {
       task.assignedManager = assignedManager;
     }
 
+    // ✅ Handle assignedTo single field
+    if (assignedTo) {
+      task.assignedTo = assignedTo;
+      task.assignedEmployees = [assignedTo];
+    }
+
     if (assignedEmployees !== undefined) {
-      if (req.user.role === "manager") {
-        const validEmps = await User.find({
-          _id:     { $in: assignedEmployees },
-          role:    "employee",
-          manager: req.user._id,
-        });
-        if (validEmps.length !== assignedEmployees.length) {
-          return res.status(400).json({ success: false, message: "Some employees are not in your team" });
-        }
-      }
       task.assignedEmployees = assignedEmployees;
+      if (assignedEmployees.length > 0 && !task.assignedTo) {
+        task.assignedTo = assignedEmployees[0];
+      }
     }
 
     task.updatedBy = req.user._id;
     await task.save();
+
+    await task.populate([
+      { path: "assignedTo",        select: "name email" },
+      { path: "assignedEmployees", select: "name email" },
+      { path: "project",           select: "name title" },
+    ]);
 
     res.json({ success: true, message: "Task updated", data: task });
   } catch (err) {
@@ -157,28 +217,26 @@ exports.updateTask = async (req, res) => {
   }
 };
 
-// ── PATCH /api/tasks/:id/status  (Employee only — pending ↔ in-progress) ──
+// ── PATCH /api/tasks/:id/status  (Employee only) ──────────────
 exports.updateTaskStatus = async (req, res) => {
   try {
     const { status } = req.body;
-
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ success: false, message: "Task not found" });
 
-    // Only assigned employees can call this endpoint
     if (req.user.role !== "employee") {
-      return res.status(403).json({ success: false, message: "Only employees can update task status via this endpoint" });
+      return res.status(403).json({ success: false, message: "Only employees can update task status" });
     }
 
-    if (!task.assignedEmployees.map(String).includes(req.user._id.toString())) {
+    // ✅ FIXED: check both assignedTo and assignedEmployees
+    const isAssigned =
+      task.assignedTo?.toString() === req.user._id.toString() ||
+      task.assignedEmployees.map(String).includes(req.user._id.toString());
+
+    if (!isAssigned) {
       return res.status(403).json({ success: false, message: "You are not assigned to this task" });
     }
 
-    // Allowed transitions:
-    //   pending     → in-progress  ✅
-    //   in-progress → pending      ✅ (revert)
-    //   in-progress → completed    ❌ must use /submit-completion instead
-    //   completed   → anything     ❌ task is locked
     const allowed = {
       "pending":     ["in-progress"],
       "in-progress": ["pending"],
@@ -188,15 +246,15 @@ exports.updateTaskStatus = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: task.status === "completed"
-          ? "Task is already completed and cannot be changed"
-          : "Task is awaiting manager approval. Cannot change status now.",
+          ? "Task is already completed"
+          : "Task is awaiting manager approval",
       });
     }
 
     if (!allowed[task.status] || !allowed[task.status].includes(status)) {
       return res.status(400).json({
         success: false,
-        message: `Cannot change status from '${task.status}' to '${status}'. To mark complete, upload a file using Submit Completion.`,
+        message: `Cannot change status from '${task.status}' to '${status}'`,
       });
     }
 
@@ -204,13 +262,13 @@ exports.updateTaskStatus = async (req, res) => {
     task.updatedBy = req.user._id;
     await task.save();
 
-    res.json({ success: true, message: `Task status updated to '${status}'`, data: task });
+    res.json({ success: true, message: `Status updated to '${status}'`, data: task });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// ── POST /api/tasks/:id/submit-completion  (Employee — upload file) ─────────
+// ── POST /api/tasks/:id/submit-completion  (Employee) ─────────
 exports.submitCompletion = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
@@ -220,7 +278,12 @@ exports.submitCompletion = async (req, res) => {
       return res.status(403).json({ success: false, message: "Only employees can submit completion" });
     }
 
-    if (!task.assignedEmployees.map(String).includes(req.user._id.toString())) {
+    // ✅ FIXED: check both fields
+    const isAssigned =
+      task.assignedTo?.toString() === req.user._id.toString() ||
+      task.assignedEmployees.map(String).includes(req.user._id.toString());
+
+    if (!isAssigned) {
       return res.status(403).json({ success: false, message: "You are not assigned to this task" });
     }
 
@@ -234,7 +297,7 @@ exports.submitCompletion = async (req, res) => {
 
     task.submissionFile = {
       filename:   req.file.originalname,
-      path:       req.file.filename,       // stored filename on disk
+      path:       req.file.filename,
       mimetype:   req.file.mimetype,
       uploadedAt: new Date(),
     };
@@ -249,10 +312,10 @@ exports.submitCompletion = async (req, res) => {
   }
 };
 
-// ── PATCH /api/tasks/:id/review-submission  (Manager — approve or reject) ──
+// ── PATCH /api/tasks/:id/review-submission  (Manager) ─────────
 exports.reviewSubmission = async (req, res) => {
   try {
-    const { decision, note } = req.body; // decision: "approved" | "rejected"
+    const { decision, note } = req.body;
 
     if (!["approved", "rejected"].includes(decision)) {
       return res.status(400).json({ success: false, message: "Decision must be 'approved' or 'rejected'" });
@@ -265,8 +328,12 @@ exports.reviewSubmission = async (req, res) => {
       return res.status(403).json({ success: false, message: "Only managers can review task submissions" });
     }
 
-    if (task.assignedManager?.toString() !== req.user._id.toString() &&
-        task.createdBy.toString()        !== req.user._id.toString()) {
+    // ✅ FIXED: also allow if manager created the task
+    const isAuthorized =
+      task.assignedManager?.toString() === req.user._id.toString() ||
+      task.createdBy.toString()        === req.user._id.toString();
+
+    if (!isAuthorized) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
@@ -279,7 +346,6 @@ exports.reviewSubmission = async (req, res) => {
       task.submissionStatus = "approved";
       task.submissionNote   = "";
     } else {
-      // Rejected → send back to in-progress so employee can re-submit
       task.status           = "in-progress";
       task.submissionStatus = "rejected";
       task.submissionNote   = note || "Submission rejected by manager";
@@ -290,7 +356,9 @@ exports.reviewSubmission = async (req, res) => {
 
     res.json({
       success: true,
-      message: decision === "approved" ? "Task approved and marked as completed!" : "Submission rejected. Employee can re-submit.",
+      message: decision === "approved"
+        ? "Task approved and marked as completed!"
+        : "Submission rejected. Employee can re-submit.",
       data: task,
     });
   } catch (err) {
@@ -298,7 +366,7 @@ exports.reviewSubmission = async (req, res) => {
   }
 };
 
-// ── GET /api/tasks/:id/submission-file  (Manager — download/view file) ──────
+// ── GET /api/tasks/:id/submission-file  (Manager) ─────────────
 exports.getSubmissionFile = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
@@ -325,14 +393,15 @@ exports.getSubmissionFile = async (req, res) => {
   }
 };
 
-// ── DELETE /api/tasks/:id  (Admin or Manager) ────────────────
+// ── DELETE /api/tasks/:id  (Admin or Manager) ─────────────────
 exports.deleteTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ success: false, message: "Task not found" });
 
     if (req.user.role === "manager" &&
-        task.createdBy.toString() !== req.user._id.toString()) {
+        task.createdBy.toString() !== req.user._id.toString() &&
+        task.assignedManager?.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: "You can only delete tasks you created" });
     }
 

@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { FiPlus, FiX, FiFile, FiCheckCircle, FiXCircle, FiZap } from 'react-icons/fi';
 import './ManagerTasks.css';
 
-// ── Demo Task Templates ────────────────────────────────────────────────────
+// ── Demo Task Templates ──────────────────────────���─────────────────────────
 // All values match backend enums EXACTLY (all lowercase):
 //   status:   'pending' | 'in-progress'
 //   priority: 'low' | 'medium' | 'high' | 'urgent'
@@ -231,19 +231,98 @@ export default function ManagerTasks() {
     }
   };
 
-  const handleViewFile = (taskId) => {
-    const base = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-    window.open(`${base}/tasks/${taskId}/submission-file`, '_blank');
+  // ── View / Download submission file (robust, attaches token via interceptor; retries with manual header if needed)
+  const handleViewFile = async (taskId, fallbackFilename) => {
+    // helper to handle blob and open/download
+    const openBlob = (blobData, contentType = 'application/octet-stream', filename = 'file') => {
+      const blob = new Blob([blobData], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+      // Try to open in new tab; if blocked, trigger a download
+      const newTab = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!newTab) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      // Revoke after some time
+      setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+    };
+
+    try {
+      const response = await API.get(`/tasks/${taskId}/submission-file`, { responseType: 'blob' });
+      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      const disposition = response.headers['content-disposition'] || '';
+      let filename = fallbackFilename || '';
+      // Try to parse filename from content-disposition header
+      const match = /filename\*?=(?:UTF-8'')?\"?([^\";]+)/i.exec(disposition);
+      if (match && match[1]) filename = match[1].replace(/['"]/g, '');
+      if (!filename) {
+        // fallback to a generic name
+        filename = fallbackFilename || `submission-${taskId}`;
+      }
+      openBlob(response.data, contentType, filename);
+      return;
+    } catch (err) {
+      // If unauthorized, try manual token fallback (useful if interceptor failed)
+      if (err.response?.status === 401) {
+        // attempt manual header retry if token exists
+        try {
+          const raw = localStorage.getItem('flowtrack_user');
+          const token = raw ? JSON.parse(raw)?.token : null;
+          if (token) {
+            const response = await API.get(`/tasks/${taskId}/submission-file`, {
+              responseType: 'blob',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const contentType = response.headers['content-type'] || 'application/octet-stream';
+            const disposition = response.headers['content-disposition'] || '';
+            let filename = fallbackFilename || '';
+            const match = /filename\*?=(?:UTF-8'')?\"?([^\";]+)/i.exec(disposition);
+            if (match && match[1]) filename = match[1].replace(/['"]/g, '');
+            if (!filename) filename = fallbackFilename || `submission-${taskId}`;
+            openBlob(response.data, contentType, filename);
+            return;
+          }
+        } catch (innerErr) {
+          console.error('Manual header retry failed', innerErr);
+        }
+
+        // final 401 handling
+        toast.error(err.response?.data?.message || 'Not authorized. Please login again.');
+        localStorage.removeItem('flowtrack_user');
+        window.location.href = '/login';
+        return;
+      }
+
+      if (err.response?.status === 404) {
+        toast.error(err.response?.data?.message || 'File not found.');
+        return;
+      }
+
+      console.error('Failed to fetch submission file', err);
+      toast.error('Failed to fetch file. See console for details.');
+    }
   };
 
   const getEmpNames = (task) => {
-    if (task.assignedEmployees?.length > 0)
-      return task.assignedEmployees.map((e) => (typeof e === 'object' ? e.name : e)).join(', ');
-    if (task.assignedTo)
-      return typeof task.assignedTo === 'object' ? task.assignedTo.name : task.assignedTo;
-    return '';
-  };
-
+  // Try assignedEmployees array first
+  if (task.assignedEmployees?.length > 0) {
+    return task.assignedEmployees
+      .map((e) => (typeof e === 'object' ? e.name : e))
+      .filter(Boolean)
+      .join(', ');
+  }
+  // Fall back to assignedTo single field
+  if (task.assignedTo) {
+    return typeof task.assignedTo === 'object'
+      ? task.assignedTo.name || ''
+      : task.assignedTo;
+  }
+  return '';
+};
   const filteredTasks = tasks.filter((t) => {
     if (filter.status   && t.status    !== filter.status)     return false;
     if (filter.priority && t.priority  !== filter.priority)   return false;
@@ -368,7 +447,7 @@ export default function ManagerTasks() {
                     {t.submissionFile?.filename ? (
                       <button
                         className="mgrtask-btn btn-file"
-                        onClick={() => handleViewFile(t._id)}
+                        onClick={() => handleViewFile(t._id, t.submissionFile.filename)}
                         title={t.submissionFile.filename}
                       >
                         <FiFile style={{ marginRight: 4 }} /> View File
@@ -634,7 +713,7 @@ export default function ManagerTasks() {
                   >
                     <option value="">-- Select --</option>
                     {employees.map((emp) => (
-                      <option key={emp._id} value={emp._id}>
+                      <option key={emp._id} value={emp._1}>
                         {emp.name}{emp.department ? ` — ${emp.department}` : ''}
                       </option>
                     ))}
@@ -682,7 +761,7 @@ export default function ManagerTasks() {
                   <button
                     className="mgrtask-btn btn-file"
                     style={{ width: '100%', justifyContent: 'center' }}
-                    onClick={() => handleViewFile(reviewingTask._id)}
+                    onClick={() => handleViewFile(reviewingTask._id, reviewingTask.submissionFile.filename)}
                   >
                     <FiFile style={{ marginRight: 6 }} />
                     View / Download: {reviewingTask.submissionFile.filename}

@@ -1,13 +1,28 @@
 import React, { useState } from 'react';
 import './DataTable.css';
 
-const DataTable = ({ title, columns, data, searchable = true, actions }) => {
+const DataTable = ({ title, columns = [], data = [], searchable = true, actions }) => {
   const [search, setSearch] = useState('');
 
-  const filteredData = data.filter((row) =>
+  // Normalize incoming data:
+  // - if it's already an array, use it
+  // - if it's an object with a .data array (common API shape), use .data
+  // - otherwise fall back to an empty array
+  const rows = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
+
+  const filteredData = rows.filter((row) =>
     columns.some((col) => {
-      const val = typeof col.accessor === 'function' ? col.accessor(row) : row[col.accessor];
-      return String(val || '').toLowerCase().includes(search.toLowerCase());
+      try {
+        const val =
+          typeof col.accessor === 'function'
+            ? col.accessor(row)
+            : // accessor may be a string key, guard against undefined row
+              (row ? row[col.accessor] : undefined);
+        return String(val || '').toLowerCase().includes(search.toLowerCase());
+      } catch (e) {
+        // In case accessor throws, ignore that column for this row
+        return false;
+      }
     })
   );
 
@@ -50,7 +65,9 @@ const DataTable = ({ title, columns, data, searchable = true, actions }) => {
                         ? col.render(row)
                         : typeof col.accessor === 'function'
                         ? col.accessor(row)
-                        : row[col.accessor]}
+                        : row
+                        ? row[col.accessor]
+                        : ''}
                     </td>
                   ))}
                   {actions && <td>{actions(row)}</td>}
