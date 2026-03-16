@@ -117,11 +117,11 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          {/* <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Default Admin Credentials:</p>
             <p className="text-xs text-gray-600 dark:text-gray-300">Email: <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">admin@flowtrack.com</code></p>
             <p className="text-xs text-gray-600 dark:text-gray-300">Password: <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">Admin@123</code></p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
