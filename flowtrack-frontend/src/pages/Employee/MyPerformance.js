@@ -26,18 +26,21 @@ const MyPerformance = () => {
 
   if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>;
 
+  // Guard against undefined / null so charts never break
+  const safe = (n) => (Number.isFinite(n) ? n : 0);
+
   const taskDistribution = [
-    { name: 'Completed', value: performance.completedTasks || 0 },
-    { name: 'In Progress', value: performance.inProgressTasks || 0 },
-    { name: 'Pending', value: performance.pendingTasks || 0 },
-    { name: 'Overdue', value: performance.overdueTasks || 0 },
+    { name: 'Completed',   value: safe(performance.completedTasks) },
+    { name: 'In Progress', value: safe(performance.inProgressTasks) },
+    { name: 'Pending',     value: safe(performance.pendingTasks) },
+    { name: 'Overdue',     value: safe(performance.overdueTasks) },
   ];
 
   const performanceData = [
-    { name: 'Tasks', value: performance.totalTasks || 0 },
-    { name: 'Completed', value: performance.completedTasks || 0 },
-    { name: 'Overdue', value: performance.overdueTasks || 0 },
-    { name: 'Attendance', value: performance.presentDays || 0 },
+    { name: 'Tasks',      value: safe(performance.totalTasks) },
+    { name: 'Completed',  value: safe(performance.completedTasks) },
+    { name: 'Overdue',    value: safe(performance.overdueTasks) },
+    { name: 'Attendance', value: safe(performance.presentDays) },
   ];
 
   const getPerformanceLevel = (rate) => {
@@ -47,7 +50,7 @@ const MyPerformance = () => {
     return { label: 'Needs Improvement', color: '#c62828', emoji: '📈' };
   };
 
-  const level = getPerformanceLevel(performance.completionRate || 0);
+  const level = getPerformanceLevel(safe(performance.completionRate));
 
   return (
     <div>
@@ -61,18 +64,18 @@ const MyPerformance = () => {
         <div style={{ fontSize: '48px' }}>{level.emoji}</div>
         <h3 style={{ fontSize: '22px', color: level.color, marginTop: '8px' }}>{level.label}</h3>
         <p style={{ fontSize: '14px', color: '#888', marginTop: '4px' }}>
-          Task Completion Rate: <strong style={{ fontSize: '24px', color: level.color }}>{performance.completionRate || 0}%</strong>
+          Task Completion Rate: <strong style={{ fontSize: '24px', color: level.color }}>{safe(performance.completionRate)}%</strong>
         </p>
       </div>
 
       {/* Stats Cards */}
       <div className="dashboard-cards">
-        <DashboardCard title="Total Tasks" value={performance.totalTasks || 0} icon={<FiCheckSquare />} color="#1a237e" />
-        <DashboardCard title="Completed" value={performance.completedTasks || 0} icon={<FiAward />} color="#2e7d32" />
-        <DashboardCard title="In Progress" value={performance.inProgressTasks || 0} icon={<FiClock />} color="#ef6c00" />
-        <DashboardCard title="Overdue" value={performance.overdueTasks || 0} icon={<FiAlertCircle />} color="#c62828" />
-        <DashboardCard title="Present Days" value={performance.presentDays || 0} icon={<FiCalendar />} color="#00897b" />
-        <DashboardCard title="Completion Rate" value={`${performance.completionRate || 0}%`} icon={<FiTrendingUp />} color="#6a1b9a" />
+        <DashboardCard title="Total Tasks" value={safe(performance.totalTasks)} icon={<FiCheckSquare />} color="#1a237e" />
+        <DashboardCard title="Completed" value={safe(performance.completedTasks)} icon={<FiAward />} color="#2e7d32" />
+        <DashboardCard title="In Progress" value={safe(performance.inProgressTasks)} icon={<FiClock />} color="#ef6c00" />
+        <DashboardCard title="Overdue" value={safe(performance.overdueTasks)} icon={<FiAlertCircle />} color="#c62828" />
+        <DashboardCard title="Present Days" value={safe(performance.presentDays)} icon={<FiCalendar />} color="#00897b" />
+        <DashboardCard title="Completion Rate" value={`${safe(performance.completionRate)}%`} icon={<FiTrendingUp />} color="#6a1b9a" />
       </div>
 
       {/* Charts */}
