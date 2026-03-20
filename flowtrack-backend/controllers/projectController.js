@@ -1,8 +1,6 @@
 const Project = require('../models/Project');
 const Task = require('../models/Task');
 const User = require('../models/User');
-const ActivityLog = require('../models/ActivityLog');
-
 
 // @desc    Get all projects
 // @route   GET /api/projects

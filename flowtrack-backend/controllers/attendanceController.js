@@ -1,5 +1,4 @@
 const Attendance = require('../models/Attendance');
-const ActivityLog = require('../models/ActivityLog');
 
 // @desc    Mark check-in
 // @route   POST /api/attendance/check-in

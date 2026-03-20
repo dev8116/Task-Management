@@ -1,5 +1,4 @@
 const Leave = require('../models/Leave');
-const ActivityLog = require('../models/ActivityLog');
 
 // @desc    Apply for leave
 // @route   POST /api/leaves

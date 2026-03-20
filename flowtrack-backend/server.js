@@ -12,7 +12,6 @@ const taskRoutes = require('./routes/taskRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const leaveRoutes = require('./routes/leaveRoutes');
 const reportRoutes = require('./routes/reportRoutes');
-const activityLogRoutes = require('./routes/activityLogRoutes');
 
 dotenv.config();
 
@@ -35,7 +34,6 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/reports', reportRoutes);
-app.use('/api/activity-logs', activityLogRoutes);
 
 // Health check
 app.get('/', (req, res) => {

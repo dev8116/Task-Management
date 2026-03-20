@@ -1,6 +1,5 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
-const ActivityLog = require('../models/ActivityLog');
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -89,7 +88,7 @@ exports.getMyProfile = async (req, res) => {
   }
 };
 
-// @desc    Update logged-in user's own profile (all editable fields)
+// @desc    Update logged-in user's own profile
 // @route   PUT /api/users/update-profile
 exports.updateMyProfile = async (req, res) => {
   try {
@@ -100,7 +99,6 @@ exports.updateMyProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // --- Email uniqueness check ---
     if (email && email.toLowerCase() !== user.email) {
       const emailExists = await User.findOne({ email: email.toLowerCase() });
       if (emailExists) {
@@ -109,12 +107,10 @@ exports.updateMyProfile = async (req, res) => {
       user.email = email.toLowerCase();
     }
 
-    // --- Update basic fields ---
     if (name && name.trim()) user.name = name.trim();
     if (phone !== undefined) user.phone = phone;
     if (department !== undefined) user.department = department;
 
-    // --- Password change (optional) ---
     if (newPassword) {
       if (!oldPassword) {
         return res.status(400).json({ message: 'Please provide your current password to change it' });
@@ -131,7 +127,6 @@ exports.updateMyProfile = async (req, res) => {
 
     await user.save();
 
-    // Return updated user without sensitive fields
     const updatedUser = await User.findById(user._id)
       .select('-password -resetPasswordToken -resetPasswordExpires')
       .populate('manager', 'name email department');
@@ -168,18 +163,11 @@ exports.createUser = async (req, res) => {
       manager: (role === 'employee' && manager) ? manager : null,
     });
 
-    // If employee has a manager, add employee to manager's teamMembers
     if (role === 'employee' && manager) {
       await User.findByIdAndUpdate(manager, {
         $addToSet: { teamMembers: user._id },
       });
     }
-
-    await ActivityLog.create({
-      user: req.user._id,
-      action: 'Created User',
-      details: `Created user: ${name} (${role})`,
-    });
 
     const createdUser = await User.findById(user._id).select('-password');
     res.status(201).json(createdUser);
@@ -219,13 +207,8 @@ exports.updateUser = async (req, res) => {
 
     await user.save();
 
-    await ActivityLog.create({
-      user: req.user._id,
-      action: 'Updated User',
-      details: `Updated user: ${user.name}`,
-    });
-
-    const updatedUser = await User.findById(user._id).select('-password')
+    const updatedUser = await User.findById(user._id)
+      .select('-password')
       .populate('manager', 'name email');
     res.json(updatedUser);
   } catch (error) {
@@ -247,12 +230,6 @@ exports.deleteUser = async (req, res) => {
     }
 
     await User.findByIdAndDelete(req.params.id);
-
-    await ActivityLog.create({
-      user: req.user._id,
-      action: 'Deleted User',
-      details: `Deleted user: ${user.name} (${user.email})`,
-    });
 
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
