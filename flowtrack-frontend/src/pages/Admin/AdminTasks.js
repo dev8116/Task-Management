@@ -2,35 +2,26 @@ import React, { useEffect, useState } from 'react';
 import API from '../../api/axios';
 import { toast } from 'react-toastify';
 import { FiFile, FiSearch } from 'react-icons/fi';
-
-// Status badge colours
-const STATUS_STYLE = {
-  'pending':          { background: '#fff8e1', color: '#f59e0b' },
-  'in-progress':      { background: '#e0f2fe', color: '#0284c7' },
-  'pending-approval': { background: '#f3e8ff', color: '#7c3aed' },
-  'completed':        { background: '#e8f5e9', color: '#2e7d32' },
-  'overdue':          { background: '#fce4ec', color: '#c62828' },
-};
-
-const PRIORITY_STYLE = {
-  'low':    { background: '#f0fdf4', color: '#15803d' },
-  'medium': { background: '#fefce8', color: '#a16207' },
-  'high':   { background: '#fff7ed', color: '#c2410c' },
-  'urgent': { background: '#fef2f2', color: '#dc2626' },
-};
+import './AdminTasks.css';
 
 const AdminTasks = () => {
-  const [tasks, setTasks]       = useState([]);
-  const [search, setSearch]     = useState('');
-  const [loading, setLoading]   = useState(true);
+  const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState({ status: '', priority: '', project: '' });
+  const [search, setSearch] = useState('');
 
-  useEffect(() => { fetchTasks(); }, []);
+  useEffect(() => {
+    fetchAll();
+  }, []);
 
-  const fetchTasks = async () => {
+  const fetchAll = async () => {
     try {
-      const res  = await API.get('/tasks');
-      const data = res.data?.data ?? res.data;
-      setTasks(Array.isArray(data) ? data : []);
+      const [taskRes, projRes] = await Promise.all([API.get('/tasks'), API.get('/projects')]);
+      const taskData = taskRes.data?.data ?? taskRes.data;
+      const projData = projRes.data?.data ?? projRes.data;
+      setTasks(Array.isArray(taskData) ? taskData : []);
+      setProjects(Array.isArray(projData) ? projData : []);
     } catch (err) {
       toast.error('Failed to load tasks');
     } finally {
@@ -38,178 +29,190 @@ const AdminTasks = () => {
     }
   };
 
-  // ── View / download submitted file ──
+  const getEmpNames = (task) => {
+    if (task.assignedEmployees?.length > 0) {
+      return task.assignedEmployees
+        .map((e) => (typeof e === 'object' ? e.name : e))
+        .filter(Boolean)
+        .join(', ');
+    }
+    if (task.assignedTo) {
+      return typeof task.assignedTo === 'object'
+        ? task.assignedTo.name || ''
+        : task.assignedTo;
+    }
+    return '—';
+  };
+
   const handleViewFile = (taskId) => {
     const base = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
     window.open(`${base}/tasks/${taskId}/submission-file`, '_blank');
   };
 
-  const getEmpName = (task) => {
-    if (task.assignedEmployees?.length > 0)
-      return task.assignedEmployees.map((e) => (typeof e === 'object' ? e.name : e)).join(', ');
-    if (task.assignedTo)
-      return typeof task.assignedTo === 'object' ? task.assignedTo.name : task.assignedTo;
-    return 'N/A';
+  const matchesFilters = (t) => {
+    if (filter.status && t.status !== filter.status) return false;
+    if (filter.priority && t.priority !== filter.priority) return false;
+    if (filter.project && t.project?._id !== filter.project) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const haystack = [
+        t.title,
+        getEmpNames(t),
+        t.project?.name,
+        t.project?.title,
+        t.priority,
+        t.status,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
   };
 
-  const getProjectName = (task) => {
-    if (!task.project) return 'N/A';
-    return task.project.name || task.project.title || 'N/A';
-  };
+  const filteredTasks = tasks.filter(matchesFilters);
 
-  const filtered = tasks.filter((t) => {
-    const q = search.toLowerCase();
-    return (
-      t.title?.toLowerCase().includes(q) ||
-      getEmpName(t).toLowerCase().includes(q) ||
-      getProjectName(t).toLowerCase().includes(q)
-    );
-  });
-
-  if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading tasks...</div>;
+  if (loading) return <div className="adm-loading">Loading tasks...</div>;
 
   return (
-    <div style={{ padding: '0' }}>
+    <div className="adm-container">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 700 }}>All Tasks</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8,
-          background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
-          padding: '8px 12px', width: '260px',
-        }}>
-          <FiSearch style={{ color: '#94a3b8' }} />
+      <div className="adm-header">
+        <div>
+          <h2 className="adm-title">All Tasks</h2>
+          <p className="adm-subtitle">View every task with filters—no create or reassign actions.</p>
+        </div>
+        <div className="adm-search">
+          <FiSearch className="adm-search-icon" />
           <input
-            placeholder="Search tasks..."
+            placeholder="Search by title, assignee, project..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ border: 'none', outline: 'none', fontSize: '14px', flex: 1, background: 'transparent' }}
           />
         </div>
       </div>
 
+      {/* Filters */}
+      <div className="adm-filters">
+        <select
+          value={filter.status}
+          onChange={(e) => setFilter({ ...filter, status: e.target.value })}
+        >
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="in-progress">In Progress</option>
+          <option value="pending-approval">Pending Approval</option>
+          <option value="completed">Completed</option>
+        </select>
+
+        <select
+          value={filter.priority}
+          onChange={(e) => setFilter({ ...filter, priority: e.target.value })}
+        >
+          <option value="">All Priorities</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
+
+        <select
+          value={filter.project}
+          onChange={(e) => setFilter({ ...filter, project: e.target.value })}
+        >
+          <option value="">All Projects</option>
+          {projects.map((p) => (
+            <option key={p._id} value={p._id}>
+              {p.name || p.title}
+            </option>
+          ))}
+        </select>
+
+        {(filter.status || filter.priority || filter.project || search) && (
+          <button
+            className="adm-btn-secondary"
+            onClick={() => {
+              setFilter({ status: '', priority: '', project: '' });
+              setSearch('');
+            }}
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
+
       {/* Table */}
-      <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9' }}>
-          <span style={{ fontWeight: 600, fontSize: '15px' }}>Tasks ({filtered.length})</span>
-        </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8fafc' }}>
-                {['Title', 'Project', 'Assigned To', 'Priority', 'Status', 'Deadline', 'Submission File'].map((h) => (
-                  <th key={h} style={{
-                    textAlign: 'left', padding: '12px 16px',
-                    fontSize: '12px', fontWeight: 600, color: '#64748b',
-                    textTransform: 'uppercase', letterSpacing: '0.05em',
-                    borderBottom: '1px solid #e2e8f0',
-                  }}>
-                    {h}
-                  </th>
-                ))}
+      <div className="adm-table-wrapper">
+        <table className="adm-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Project</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Assigned To</th>
+              <th>Deadline</th>
+              <th>Submission</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredTasks.map((t) => (
+              <tr key={t._id}>
+                <td>
+                  <strong>{t.title}</strong>
+                  {t.description && (
+                    <div className="adm-desc" title={t.description}>
+                      {t.description}
+                    </div>
+                  )}
+                </td>
+                <td>{t.project?.name || t.project?.title || '—'}</td>
+                <td>
+                  <span className={`adm-badge badge-${(t.status || '').replace(/ /g, '-')}`}>
+                    {t.status === 'pending-approval'
+                      ? 'Pending Approval'
+                      : t.status?.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) || '—'}
+                  </span>
+                </td>
+                <td>
+                  <span className={`adm-priority priority-${t.priority || 'na'}`}>
+                    {t.priority ? t.priority.charAt(0).toUpperCase() + t.priority.slice(1) : '—'}
+                  </span>
+                </td>
+                <td>{getEmpNames(t)}</td>
+                <td>
+                  {t.deadline
+                    ? new Date(t.deadline).toLocaleDateString()
+                    : t.dueDate
+                    ? new Date(t.dueDate).toLocaleDateString()
+                    : '—'}
+                </td>
+                <td>
+                  {t.submissionFile?.filename ? (
+                    <button
+                      className="adm-btn-file"
+                      onClick={() => handleViewFile(t._id)}
+                      title={t.submissionFile.filename}
+                    >
+                      <FiFile style={{ marginRight: 6 }} /> View File
+                    </button>
+                  ) : (
+                    <span className="adm-muted">—</span>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.map((t) => {
-                const statusStyle   = STATUS_STYLE[t.status]   || { background: '#f1f5f9', color: '#64748b' };
-                const priorityStyle = PRIORITY_STYLE[t.priority] || { background: '#f1f5f9', color: '#64748b' };
-                const deadline      = t.deadline || t.dueDate;
-                const isOverdue     = deadline && new Date(deadline) < new Date() &&
-                                      !['completed', 'pending-approval'].includes(t.status);
+            ))}
 
-                return (
-                  <tr key={t._id} style={{ borderBottom: '1px solid #f1f5f9' }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
-                    {/* Title */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <strong style={{ fontSize: '14px' }}>{t.title}</strong>
-                      {t.description && (
-                        <p style={{ fontSize: '12px', color: '#94a3b8', margin: '2px 0 0', maxWidth: '200px',
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {t.description}
-                        </p>
-                      )}
-                    </td>
-
-                    {/* Project */}
-                    <td style={{ padding: '14px 16px', fontSize: '13px', color: '#64748b' }}>
-                      {getProjectName(t)}
-                    </td>
-
-                    {/* Assigned To */}
-                    <td style={{ padding: '14px 16px', fontSize: '13px' }}>
-                      {getEmpName(t)}
-                    </td>
-
-                    {/* Priority */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{
-                        ...priorityStyle,
-                        padding: '3px 10px', borderRadius: '12px',
-                        fontSize: '11px', fontWeight: 600,
-                        textTransform: 'uppercase', letterSpacing: '0.04em',
-                      }}>
-                        {t.priority?.toUpperCase() || 'N/A'}
-                      </span>
-                    </td>
-
-                    {/* Status */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{
-                        ...statusStyle,
-                        padding: '4px 12px', borderRadius: '12px',
-                        fontSize: '12px', fontWeight: 500,
-                      }}>
-                        {t.status === 'pending-approval'
-                          ? '⏳ Pending Approval'
-                          : t.status?.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) || 'N/A'}
-                      </span>
-                    </td>
-
-                    {/* Deadline */}
-                    <td style={{ padding: '14px 16px', fontSize: '13px',
-                                 color: isOverdue ? '#c62828' : '#64748b', fontWeight: isOverdue ? 600 : 400 }}>
-                      {deadline
-                        ? new Date(deadline).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })
-                        : 'N/A'}
-                      {isOverdue && <span style={{ marginLeft: 4, fontSize: '11px' }}>⚠ Overdue</span>}
-                    </td>
-
-                    {/* ✅ Submission File column */}
-                    <td style={{ padding: '14px 16px' }}>
-                      {t.submissionFile?.filename ? (
-                        <button
-                          onClick={() => handleViewFile(t._id)}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 6,
-                            padding: '6px 12px', borderRadius: '8px',
-                            background: '#eff6ff', color: '#1d4ed8',
-                            border: '1px solid #bfdbfe', cursor: 'pointer',
-                            fontSize: '12px', fontWeight: 500,
-                          }}
-                          title={`View: ${t.submissionFile.filename}`}
-                        >
-                          <FiFile size={13} /> View File
-                        </button>
-                      ) : (
-                        <span style={{ color: '#cbd5e1', fontSize: '13px' }}>—</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                    {tasks.length === 0 ? 'No tasks created yet.' : 'No tasks match your search.'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            {filteredTasks.length === 0 && (
+              <tr>
+                <td colSpan="7" className="adm-empty">
+                  {tasks.length === 0 ? 'No tasks available.' : 'No tasks match the selected filters.'}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
