@@ -26,7 +26,7 @@ import ProtectedRoute from "./components/Common/ProtectedRoute";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import UserManagement from "./pages/Admin/UserManagement";
 import ProjectManagement from "./pages/Admin/ProjectManagement";
-import AllTasks from "./pages/Admin/AllTasks";
+import AdminTasks from "./pages/Admin/AdminTasks";
 import AttendanceManagement from "./pages/Admin/AttendanceManagement";
 import LeaveManagement from "./pages/Admin/LeaveManagement";
 import ActivityLogs from "./pages/Admin/ActivityLogs";
@@ -86,7 +86,7 @@ const AppRoutes = () => {
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="users" element={<UserManagement />} />
         <Route path="projects" element={<ProjectManagement />} />
-        <Route path="tasks" element={<AllTasks />} />
+        <Route path="tasks" element={<AdminTasks />} />
         <Route path="attendance" element={<AttendanceManagement />} />
         <Route path="leaves" element={<LeaveManagement />} />
         <Route path="activity-logs" element={<ActivityLogs />} />
