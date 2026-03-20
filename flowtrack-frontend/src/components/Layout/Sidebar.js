@@ -17,7 +17,6 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/admin/tasks',          label: 'All Tasks',       icon: <FiCheckSquare /> },
     { to: '/admin/attendance',     label: 'Attendance',      icon: <FiClock /> },
     { to: '/admin/leaves',         label: 'Leave Management',icon: <FiCalendar /> },
-    { to: '/admin/activity-logs',  label: 'Activity Logs',   icon: <FiActivity /> },
     { to: '/admin/reports',        label: 'Reports',         icon: <FiBarChart2 /> },
     { to: '/admin/profile',        label: 'My Profile',      icon: <FiUser /> },
   ];
