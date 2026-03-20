@@ -4,6 +4,21 @@ import { toast } from 'react-toastify';
 import { FiFile, FiSearch } from 'react-icons/fi';
 import './AdminTasks.css';
 
+const STATUS_STYLE = {
+  pending: { background: '#fef9c3', color: '#854d0e' },
+  'in-progress': { background: '#dbeafe', color: '#1e40af' },
+  'pending-approval': { background: '#f3e8ff', color: '#7c3aed' },
+  completed: { background: '#dcfce7', color: '#166534' },
+  overdue: { background: '#fce4ec', color: '#c62828' },
+};
+
+const PRIORITY_STYLE = {
+  low: { background: '#dcfce7', color: '#166534' },
+  medium: { background: '#fef9c3', color: '#854d0e' },
+  high: { background: '#ffedd5', color: '#9a3412' },
+  urgent: { background: '#fee2e2', color: '#991b1b' },
+};
+
 const AdminTasks = () => {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -44,9 +59,61 @@ const AdminTasks = () => {
     return '—';
   };
 
-  const handleViewFile = (taskId) => {
-    const base = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-    window.open(`${base}/tasks/${taskId}/submission-file`, '_blank');
+  // Token-aware file fetch
+  const handleViewFile = async (taskId, fallbackFilename = 'submission') => {
+    const openBlob = (blobData, contentType = 'application/octet-stream', filename = 'file') => {
+      const blob = new Blob([blobData], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+      const newTab = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!newTab) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+    };
+
+    try {
+      // Primary: use axios interceptor for token
+      const res = await API.get(`/tasks/${taskId}/submission-file`, { responseType: 'blob' });
+      const contentType = res.headers['content-type'] || 'application/octet-stream';
+      const disposition = res.headers['content-disposition'] || '';
+      const match = /filename\*?=(?:UTF-8'')?\"?([^\";]+)/i.exec(disposition);
+      const filename = (match && match[1]) ? match[1].replace(/['"]/g, '') : fallbackFilename;
+      openBlob(res.data, contentType, filename);
+      return;
+    } catch (err) {
+      // Fallback: manual token if interceptor failed
+      if (err.response?.status === 401) {
+        const raw = localStorage.getItem('flowtrack_user');
+        const token = raw ? JSON.parse(raw)?.token : null;
+        if (token) {
+          try {
+            const res = await API.get(`/tasks/${taskId}/submission-file`, {
+              responseType: 'blob',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const contentType = res.headers['content-type'] || 'application/octet-stream';
+            const disposition = res.headers['content-disposition'] || '';
+            const match = /filename\*?=(?:UTF-8'')?\"?([^\";]+)/i.exec(disposition);
+            const filename = (match && match[1]) ? match[1].replace(/['"]/g, '') : fallbackFilename;
+            openBlob(res.data, contentType, filename);
+            return;
+          } catch (innerErr) {
+            // fall through to generic error
+          }
+        }
+      }
+      if (err.response?.status === 404) {
+        toast.error('File not found.');
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to fetch file.');
+        console.error('View file error:', err);
+      }
+    }
   };
 
   const matchesFilters = (t) => {
@@ -157,52 +224,58 @@ const AdminTasks = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredTasks.map((t) => (
-              <tr key={t._id}>
-                <td>
-                  <strong>{t.title}</strong>
-                  {t.description && (
-                    <div className="adm-desc" title={t.description}>
-                      {t.description}
-                    </div>
-                  )}
-                </td>
-                <td>{t.project?.name || t.project?.title || '—'}</td>
-                <td>
-                  <span className={`adm-badge badge-${(t.status || '').replace(/ /g, '-')}`}>
-                    {t.status === 'pending-approval'
-                      ? 'Pending Approval'
-                      : t.status?.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) || '—'}
-                  </span>
-                </td>
-                <td>
-                  <span className={`adm-priority priority-${t.priority || 'na'}`}>
-                    {t.priority ? t.priority.charAt(0).toUpperCase() + t.priority.slice(1) : '—'}
-                  </span>
-                </td>
-                <td>{getEmpNames(t)}</td>
-                <td>
-                  {t.deadline
-                    ? new Date(t.deadline).toLocaleDateString()
-                    : t.dueDate
-                    ? new Date(t.dueDate).toLocaleDateString()
-                    : '—'}
-                </td>
-                <td>
-                  {t.submissionFile?.filename ? (
-                    <button
-                      className="adm-btn-file"
-                      onClick={() => handleViewFile(t._id)}
-                      title={t.submissionFile.filename}
+            {filteredTasks.map((t) => {
+              const statusStyle = STATUS_STYLE[t.status] || { background: '#e2e8f0', color: '#475569' };
+              const priorityStyle = PRIORITY_STYLE[t.priority] || { background: '#e2e8f0', color: '#475569' };
+              const deadline = t.deadline || t.dueDate;
+              return (
+                <tr key={t._id}>
+                  <td>
+                    <strong>{t.title}</strong>
+                    {t.description && (
+                      <div className="adm-desc" title={t.description}>
+                        {t.description}
+                      </div>
+                    )}
+                  </td>
+                  <td>{t.project?.name || t.project?.title || '—'}</td>
+                  <td>
+                    <span
+                      className={`adm-badge badge-${(t.status || '').replace(/ /g, '-')}`}
+                      style={statusStyle}
                     >
-                      <FiFile style={{ marginRight: 6 }} /> View File
-                    </button>
-                  ) : (
-                    <span className="adm-muted">—</span>
-                  )}
-                </td>
-              </tr>
-            ))}
+                      {t.status === 'pending-approval'
+                        ? 'Pending Approval'
+                        : t.status?.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) || '—'}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`adm-priority priority-${t.priority || 'na'}`} style={priorityStyle}>
+                      {t.priority ? t.priority.charAt(0).toUpperCase() + t.priority.slice(1) : '—'}
+                    </span>
+                  </td>
+                  <td>{getEmpNames(t)}</td>
+                  <td>
+                    {deadline
+                      ? new Date(deadline).toLocaleDateString()
+                      : '—'}
+                  </td>
+                  <td>
+                    {t.submissionFile?.filename ? (
+                      <button
+                        className="adm-btn-file"
+                        onClick={() => handleViewFile(t._id, t.submissionFile.filename)}
+                        title={t.submissionFile.filename}
+                      >
+                        <FiFile style={{ marginRight: 6 }} /> View File
+                      </button>
+                    ) : (
+                      <span className="adm-muted">—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
 
             {filteredTasks.length === 0 && (
               <tr>
