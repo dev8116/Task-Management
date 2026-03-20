@@ -1,7 +1,6 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const ActivityLog = require('../models/ActivityLog');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
@@ -27,14 +26,6 @@ exports.register = async (req, res) => {
       role: role || 'employee',
       department,
       phone,
-    });
-
-    await ActivityLog.create({
-      user: user._id,
-      action: 'REGISTER',
-      description: `${user.name} registered as ${user.role}`,
-      entity: 'User',
-      entityId: user._id,
     });
 
     res.status(201).json({
@@ -68,14 +59,6 @@ exports.login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
-
-    await ActivityLog.create({
-      user: user._id,
-      action: 'LOGIN',
-      description: `${user.name} logged in`,
-      entity: 'User',
-      entityId: user._id,
-    });
 
     res.json({
       _id: user._id,
