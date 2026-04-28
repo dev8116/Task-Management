@@ -112,6 +112,40 @@
   margin: 0;
 }
 
+.avatar-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.avatar-upload input[type="file"] {
+  font-size: 0.8rem;
+}
+
+.btn-avatar-upload {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #0ea5e9;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-avatar-upload:hover { background: #0284c7; }
+.btn-avatar-upload:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.avatar-upload small {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
 /* Role badges */
 .role-badge {
   display: inline-flex;

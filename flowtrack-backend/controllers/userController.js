@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
+const path = require('path');
+const fs = require('fs');
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -133,6 +135,44 @@ exports.updateMyProfile = async (req, res) => {
 
     res.json({
       message: 'Profile updated successfully',
+      user: updatedUser,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update logged-in user's avatar
+// @route   PUT /api/users/update-avatar
+exports.updateMyAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Avatar file is required' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // delete old avatar if it is local
+    if (user.avatar && user.avatar.startsWith('/uploads/avatars/')) {
+      const relativePath = user.avatar.replace(/^\//, '');
+      const oldPath = path.join(__dirname, '..', relativePath);
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+    }
+
+    user.avatar = `/uploads/avatars/${req.file.filename}`;
+    await user.save();
+
+    const updatedUser = await User.findById(user._id)
+      .select('-password -resetPasswordToken -resetPasswordExpires')
+      .populate('manager', 'name email department');
+
+    res.json({
+      message: 'Avatar updated successfully',
       user: updatedUser,
     });
   } catch (error) {

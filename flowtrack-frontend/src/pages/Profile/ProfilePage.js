@@ -16,6 +16,12 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const API_BASE = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+
   // Form state
   const [form, setForm] = useState({
     name: '',
@@ -64,8 +70,48 @@ const ProfilePage = () => {
     setPasswordForm({ ...passwordForm, [e.target.name]: e.target.value });
   };
 
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  const handleUploadAvatar = async () => {
+    if (!avatarFile) {
+      toast.error('Please select an image');
+      return;
+    }
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', avatarFile);
+
+      const { data } = await API.put('/users/update-avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      setProfile(data.user);
+      setAvatarFile(null);
+      setAvatarPreview('');
+      toast.success('Avatar updated successfully!');
+
+      const stored = JSON.parse(localStorage.getItem('flowtrack_user'));
+      if (stored) {
+        stored.avatar = data.user.avatar;
+        localStorage.setItem('flowtrack_user', JSON.stringify(stored));
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update avatar');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const handleCancelEdit = () => {
     setEditMode(false);
+    setAvatarFile(null);
+    setAvatarPreview('');
     // Reset form to current profile values
     setForm({
       name: profile.name || '',
@@ -160,6 +206,13 @@ const ProfilePage = () => {
     return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  const getAvatarSrc = () => {
+    if (avatarPreview) return avatarPreview;
+    if (!profile?.avatar) return '';
+    if (profile.avatar.startsWith('http')) return profile.avatar;
+    return `${API_BASE}${profile.avatar}`;
+  };
+
   if (loading) {
     return (
       <div className="profile-loading">
@@ -168,6 +221,8 @@ const ProfilePage = () => {
       </div>
     );
   }
+
+  const avatarSrc = getAvatarSrc();
 
   return (
     <div className="profile-page">
@@ -183,8 +238,8 @@ const ProfilePage = () => {
         {/* ── LEFT: Avatar + Role Card ── */}
         <div className="profile-card profile-avatar-card">
           <div className="avatar-circle">
-            {profile?.avatar
-              ? <img src={profile.avatar} alt="avatar" className="avatar-img" />
+            {avatarSrc
+              ? <img src={avatarSrc} alt="avatar" className="avatar-img" />
               : <span>{getInitials(profile?.name)}</span>
             }
           </div>
@@ -207,6 +262,19 @@ const ProfilePage = () => {
               </div>
             )}
           </div>
+
+          <div className="avatar-upload">
+            <input type="file" accept="image/*" onChange={handleAvatarChange} />
+            <button
+              className="btn-avatar-upload"
+              onClick={handleUploadAvatar}
+              disabled={avatarUploading || !avatarFile}
+            >
+              {avatarUploading ? 'Uploading...' : 'Upload Photo'}
+            </button>
+            <small>JPG/PNG/GIF/WebP, max 5MB</small>
+          </div>
+
           <div className="account-status">
             <span className={profile?.isActive ? 'status-active' : 'status-inactive'}>
               {profile?.isActive ? '● Active' : '● Inactive'}

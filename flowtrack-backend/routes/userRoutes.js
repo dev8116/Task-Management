@@ -10,13 +10,16 @@ const {
   getMyTeam,
   getMyProfile,
   updateMyProfile,
+  updateMyAvatar,
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
+const avatarUpload = require('../middleware/avatarUpload');
 
 // ─── Profile Routes (any authenticated user) ───────────────────────────────
 router.get('/profile/me', protect, getMyProfile);
 router.put('/update-profile', protect, updateMyProfile);
+router.put('/update-avatar', protect, avatarUpload.single('avatar'), updateMyAvatar);
 
 // ─── Admin / Manager Routes ─────────────────────────────────────────────────
 router.get('/', protect, authorize('admin', 'manager'), getAllUsers);
