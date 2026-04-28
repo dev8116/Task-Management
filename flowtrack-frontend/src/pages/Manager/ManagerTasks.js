@@ -87,6 +87,7 @@ export default function ManagerTasks() {
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [creating, setCreating]                 = useState(false);
   const [showDemoMenu, setShowDemoMenu]         = useState(false);
+  const [aiTaskLoading, setAiTaskLoading]       = useState(false);
 
   // Demo-only controls
   const [allowNoProject, setAllowNoProject] = useState(false); // shows checkbox
@@ -152,6 +153,30 @@ export default function ManagerTasks() {
     setShowDemoMenu(false);
     setAllowNoProject(false);
     setUseNoProject(false);
+  };
+
+  const generateTaskSuggestion = async () => {
+    if (!form.title.trim()) {
+      toast.error('Please enter task title first');
+      return;
+    }
+    setAiTaskLoading(true);
+    try {
+      const projectName = projects.find((p) => p._id === form.project)?.name || '';
+      const { data } = await API.post('/ai/task-suggestion', {
+        title: form.title,
+        description: form.description,
+        projectName,
+      });
+      setForm((prev) => ({
+        ...prev,
+        description: data.suggestion || prev.description,
+      }));
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'AI suggestion failed');
+    } finally {
+      setAiTaskLoading(false);
+    }
   };
 
   // ── Apply Demo Template ──
@@ -658,6 +683,14 @@ export default function ManagerTasks() {
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
+                <button
+                  type="button"
+                  className="mgrtask-btn btn-secondary"
+                  onClick={generateTaskSuggestion}
+                  disabled={aiTaskLoading}
+                >
+                  {aiTaskLoading ? 'Generating...' : 'AI Suggest Details'}
+                </button>
               </div>
 
               {/* Project */}
@@ -1044,6 +1077,7 @@ export default function ManagerTasks() {
                   {editing ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
+
             </form>
           </div>
         </div>

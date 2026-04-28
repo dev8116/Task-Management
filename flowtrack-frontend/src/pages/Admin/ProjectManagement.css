@@ -84,3 +84,14 @@
   background: #fbe9e7;
   color: #d84315;
 }
+
+/* AI Suggest button styling */
+.btn-secondary {
+  margin-top: 8px;
+  background: #0ea5e9;
+  color: #fff;
+  border: 1px solid #38bdf8;
+}
+.btn-secondary:hover {
+  background: #0284c7;
+}

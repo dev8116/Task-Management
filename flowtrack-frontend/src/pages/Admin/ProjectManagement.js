@@ -25,6 +25,7 @@ const ProjectManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     fetchProjects();
@@ -50,6 +51,25 @@ const ProjectManagement = () => {
   };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const generateDescription = async () => {
+    if (!form.name.trim()) {
+      toast.error('Please enter project name first');
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const { data } = await API.post('/ai/project-description', {
+        name: form.name,
+        description: form.description,
+      });
+      setForm((prev) => ({ ...prev, description: data.description || prev.description }));
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'AI generation failed');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const openCreate = () => {
     setEditingProject(null);
@@ -213,6 +233,14 @@ const ProjectManagement = () => {
                   onChange={handleChange}
                   placeholder="Project description"
                 />
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={generateDescription}
+                  disabled={aiLoading}
+                >
+                  {aiLoading ? 'Generating...' : 'AI Suggest Description'}
+                </button>
               </div>
               <div className="form-group">
                 <label>Assign Manager *</label>

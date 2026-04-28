@@ -78,6 +78,14 @@
 .btn-approve   { background: #10b981; color: #fff; }
 .btn-reject    { background: #ef4444; color: #fff; }
 
+/* AI Suggest button styling */
+.btn-ai {
+  background: #0ea5e9;
+  color: #fff;
+  border: 1px solid #38bdf8;
+}
+.btn-ai:hover { background: #0284c7; }
+
 /* ── Modal ──────────────────────────────────────────────── */
 .mgr-modal-overlay {
   position: fixed; inset: 0;
