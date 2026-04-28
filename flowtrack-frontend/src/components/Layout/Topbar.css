@@ -1,0 +1,166 @@
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 250px;
+  right: 0;
+  height: 60px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 900;
+  transition: left 0.3s;
+}
+
+.dark .topbar {
+  background: #1e1e2f;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.topbar-left h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.dark .topbar-left h3 {
+  color: #e0e0e0;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.theme-toggle {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.dark .theme-toggle {
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+.notification-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  position: relative;
+  color: #555;
+  padding: 6px;
+}
+
+.dark .notification-btn {
+  color: #ccc;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #e53935;
+  color: #fff;
+  font-size: 10px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.user-profile:hover {
+  background: #f0f0f0;
+}
+
+.dark .user-profile:hover {
+  background: #2a2a3e;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1a237e;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.user-info {
+  text-align: left;
+}
+
+.user-info .user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.dark .user-info .user-name {
+  color: #e0e0e0;
+}
+
+.user-info .user-role {
+  font-size: 11px;
+  color: #888;
+  text-transform: capitalize;
+}
+
+.logout-btn {
+  background: #e53935;
+  color: #fff;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.logout-btn:hover {
+  background: #c62828;
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    left: 0;
+    padding: 0 12px 0 55px;
+  }
+
+  .user-info {
+    display: none;
+  }
+}

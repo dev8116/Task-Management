@@ -1,0 +1,68 @@
+.task-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  border-left: 4px solid #1a237e;
+  transition: transform 0.2s;
+}
+
+.dark .task-card {
+  background: #1e1e2f;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+}
+
+.task-card.low { border-left-color: #4caf50; }
+.task-card.medium { border-left-color: #ff9800; }
+.task-card.high { border-left-color: #f44336; }
+.task-card.critical { border-left-color: #9c27b0; }
+
+.task-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.task-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.dark .task-card-title {
+  color: #e0e0e0;
+}
+
+.task-card-desc {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.dark .task-card-desc {
+  color: #aaa;
+}
+
+.task-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #888;
+}
+
+.task-deadline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.task-deadline.overdue {
+  color: #e53935;
+  font-weight: 600;
+}

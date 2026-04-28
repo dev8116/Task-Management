@@ -1,0 +1,73 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #3949ab 100%);
+  padding: 20px;
+}
+
+.login-container {
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.dark .login-container { background: #1e1e2f; }
+
+.login-logo { text-align: center; margin-bottom: 30px; }
+
+.login-logo h1 {
+  font-size: 32px; font-weight: 700; color: #1a237e;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+
+.dark .login-logo h1 { color: #64b5f6; }
+.login-logo p { color: #888; font-size: 14px; margin-top: 4px; }
+
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 6px; }
+.dark .form-group label { color: #bbb; }
+
+.form-group input {
+  width: 100%; padding: 12px 14px; border: 1px solid #ddd;
+  border-radius: 8px; font-size: 14px; box-sizing: border-box;
+}
+
+.dark .form-group input { background: #2a2a3e; border-color: #444; color: #e0e0e0; }
+.form-group input:focus { outline: none; border-color: #1a237e; }
+
+.form-group select {
+  width: 100%; padding: 12px 14px; border: 1px solid #ddd;
+  border-radius: 8px; font-size: 14px; box-sizing: border-box;
+}
+
+.dark .form-group select { background: #2a2a3e; border-color: #444; color: #e0e0e0; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
+
+.login-btn {
+  width: 100%; padding: 12px; background: #1a237e; color: #fff;
+  border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+
+.login-btn:hover { background: #283593; }
+.login-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+.login-footer { text-align: center; margin-top: 16px; }
+.login-footer a { color: #1a237e; font-size: 13px; font-weight: 500; }
+.dark .login-footer a { color: #64b5f6; }
+
+.login-error {
+  background: #ffebee; color: #c62828;
+  padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;
+}
+
+.login-info {
+  background: #e3f2fd; color: #1565c0;
+  padding: 10px 14px; border-radius: 8px; font-size: 12px; margin-bottom: 16px; line-height: 1.5;
+}

@@ -1,0 +1,94 @@
+.employee-dashboard h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.quick-action-btn {
+  padding: 16px 20px;
+  border: 2px solid #eee;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.dark .quick-action-btn {
+  background: #1e1e2f;
+  border-color: #333;
+  color: #e0e0e0;
+}
+
+.quick-action-btn:hover {
+  border-color: #1a237e;
+  background: #e8eaf6;
+}
+
+.dark .quick-action-btn:hover {
+  border-color: #64b5f6;
+  background: #252538;
+}
+
+.quick-action-btn.checked-in {
+  border-color: #4caf50;
+  background: #e8f5e9;
+}
+
+.quick-action-btn.checked-out {
+  border-color: #f44336;
+  background: #ffebee;
+}
+
+.deadline-warning {
+  background: #fff3e0;
+  border: 1px solid #ffcc02;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.dark .deadline-warning {
+  background: #332b00;
+  border-color: #665500;
+}
+
+.deadline-warning h4 {
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: #ef6c00;
+}
+
+.deadline-warning ul {
+  list-style: none;
+  padding: 0;
+}
+
+.deadline-warning li {
+  padding: 4px 0;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.deadline-warning .task-name {
+  font-weight: 500;
+}
+
+.deadline-warning .task-date {
+  color: #c62828;
+  font-size: 12px;
+}
