@@ -1,6 +1,50 @@
 const Attendance = require("../models/Attendance");
 const User = require("../models/User");
 const { notify, getRecipients } = require("../utils/notify");
+const { compareFaces } = require("../utils/faceMatch");
+const fs = require("fs");
+const path = require("path");
+const https = require("https");
+const http = require("http");
+
+const readRemote = (url) =>
+  new Promise((resolve, reject) => {
+    const lib = url.startsWith("https") ? https : http;
+    lib
+      .get(url, (res) => {
+        const data = [];
+        res.on("data", (c) => data.push(c));
+        res.on("end", () => resolve(Buffer.concat(data)));
+      })
+      .on("error", reject);
+  });
+
+const getAvatarBuffer = async (avatar) => {
+  if (!avatar) return null;
+  if (avatar.startsWith("http")) return readRemote(avatar);
+
+  const safePath = avatar.replace(/^\//, "");
+  const filePath = path.join(__dirname, "..", safePath);
+  if (!fs.existsSync(filePath)) return null;
+  return fs.promises.readFile(filePath);
+};
+
+const verifyFace = async (req) => {
+  if (!req.file?.buffer) return { ok: false, message: "Selfie image is required" };
+
+  const user = await User.findById(req.user._id);
+  if (!user?.avatar) return { ok: false, message: "Please upload a profile photo first" };
+
+  const refBuffer = await getAvatarBuffer(user.avatar);
+  if (!refBuffer) return { ok: false, message: "Profile photo not found on server" };
+
+  const result = await compareFaces(req.file.buffer, refBuffer);
+  if (!result.matched) {
+    return { ok: false, message: result.reason || "Face not matched" };
+  }
+
+  return { ok: true };
+};
 
 // @desc    Mark check-in
 // @route   POST /api/attendance/check-in
@@ -73,6 +117,32 @@ exports.checkOut = async (req, res) => {
     });
 
     res.json(attendance);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Face check-in
+// @route   POST /api/attendance/face-check-in
+exports.faceCheckIn = async (req, res) => {
+  try {
+    const verification = await verifyFace(req);
+    if (!verification.ok) return res.status(401).json({ message: verification.message });
+
+    return exports.checkIn(req, res);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Face check-out
+// @route   POST /api/attendance/face-check-out
+exports.faceCheckOut = async (req, res) => {
+  try {
+    const verification = await verifyFace(req);
+    if (!verification.ok) return res.status(401).json({ message: verification.message });
+
+    return exports.checkOut(req, res);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

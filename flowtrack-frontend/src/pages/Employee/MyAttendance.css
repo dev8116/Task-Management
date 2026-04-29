@@ -70,3 +70,58 @@
   font-size: 18px;
   font-weight: 600;
 }
+
+/* Camera block */
+.camera-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.dark .camera-card {
+  background: #1e1e2f;
+}
+
+.camera-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.camera-btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #0ea5e9;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.camera-btn.stop {
+  background: #64748b;
+}
+
+.camera-btn.capture {
+  background: #16a34a;
+}
+
+.camera-preview {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.camera-video,
+.camera-canvas,
+.selfie-preview {
+  width: 220px;
+  height: 160px;
+  border-radius: 10px;
+  background: #0f172a;
+  object-fit: cover;
+}
