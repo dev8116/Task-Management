@@ -53,7 +53,7 @@ const AdminDashboard = () => {
     <div className="dashboard-page">
       <h2>Admin Dashboard</h2>
 
-      {/* ── Stats Cards ── */}
+      {/* ── KPI Cards ── */}
       <div className="dashboard-cards">
         <DashboardCard title="Total Employees"  value={stats.totalEmployees  || 0} icon={<FiUsers />}       color="#1a237e" />
         <DashboardCard title="Total Managers"   value={stats.totalManagers   || 0} icon={<FiUserCheck />}   color="#00897b" />

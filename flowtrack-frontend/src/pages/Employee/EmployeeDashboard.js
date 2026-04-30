@@ -263,11 +263,11 @@ const EmployeeDashboard = () => {
             </thead>
             <tbody>
               {safeTasks
-                .slice() // shallow copy
+                .slice()
                 .sort((a, b) => {
                   const da = a.updatedAt ? new Date(a.updatedAt) : new Date(0);
                   const db = b.updatedAt ? new Date(b.updatedAt) : new Date(0);
-                  return db - da; // newest first
+                  return db - da;
                 })
                 .slice(0, 5)
                 .map((t) => (

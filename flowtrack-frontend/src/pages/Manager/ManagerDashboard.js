@@ -26,7 +26,6 @@ const ManagerDashboard = () => {
 
       setStats(statsRes.data);
 
-      // Handle both plain array and { data: [...] } shapes
       const proj = projRes.data?.data ?? projRes.data;
       const team = teamRes.data?.data ?? teamRes.data;
       setProjects(Array.isArray(proj)   ? proj : []);
@@ -41,7 +40,6 @@ const ManagerDashboard = () => {
 
   if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading dashboard...</div>;
 
-  // ✅ Uses lowercase keys from fixed reportController
   const taskPieData = [
     { name: 'Pending',          value: taskSummary.pending         || 0 },
     { name: 'In Progress',      value: taskSummary.inProgress      || 0 },
@@ -64,7 +62,7 @@ const ManagerDashboard = () => {
     <div className="manager-dashboard">
       <h2>Manager Dashboard</h2>
 
-      {/* ── Stats Cards ── */}
+      {/* ── KPI Cards ── */}
       <div className="dashboard-cards">
         <DashboardCard title="Assigned Projects" value={stats.assignedProjects  || 0} icon={<FiFolder />}      color="#1a237e" />
         <DashboardCard title="Team Members"      value={stats.teamMembers       || 0} icon={<FiUsers />}       color="#6a1b9a" />
