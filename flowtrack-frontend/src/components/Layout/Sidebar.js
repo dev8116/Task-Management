@@ -27,6 +27,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/manager/tasks',             label: 'Tasks',            icon: <FiCheckSquare /> },
     { to: '/manager/team-performance',  label: 'Team Performance', icon: <FiBarChart2 /> },
     { to: '/manager/team-attendance',   label: 'Team Attendance',  icon: <FiClock /> },
+    { to: '/manager/attendance',        label: 'My Attendance',    icon: <FiClock /> },
     { to: '/manager/leaves',            label: 'Leave Requests',   icon: <FiCalendar /> },
     { to: '/manager/profile',           label: 'My Profile',       icon: <FiUser /> },
   ];

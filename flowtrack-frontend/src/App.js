@@ -38,6 +38,7 @@ import ManagerTasks from "./pages/Manager/ManagerTasks";
 import TeamPerformance from "./pages/Manager/TeamPerformance";
 import TeamAttendance from "./pages/Manager/TeamAttendance";
 import ManagerLeaves from "./pages/Manager/ManagerLeaves";
+import ManagerAttendance from "./pages/Manager/ManagerAttendance";
 
 // Employee Pages
 import EmployeeDashboard from "./pages/Employee/EmployeeDashboard";
@@ -109,6 +110,7 @@ const AppRoutes = () => {
         <Route path="tasks" element={<ManagerTasks />} />
         <Route path="team-performance" element={<TeamPerformance />} />
         <Route path="team-attendance" element={<TeamAttendance />} />
+        <Route path="attendance" element={<ManagerAttendance />} />
         <Route path="leaves" element={<ManagerLeaves />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>

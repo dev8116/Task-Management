@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './DataTable.css';
 
-const DataTable = ({ title, columns = [], data = [], searchable = true, actions }) => {
+const DataTable = ({ title, columns = [], data = [], searchable = true, actions, rowClassName }) => {
   const [search, setSearch] = useState('');
 
   // Normalize incoming data:
@@ -25,6 +25,12 @@ const DataTable = ({ title, columns = [], data = [], searchable = true, actions 
       }
     })
   );
+
+  const getRowClassName = (row) => {
+    if (!rowClassName) return '';
+    if (typeof rowClassName === 'function') return rowClassName(row) || '';
+    return rowClassName;
+  };
 
   return (
     <div className="data-table-container">
@@ -58,7 +64,7 @@ const DataTable = ({ title, columns = [], data = [], searchable = true, actions 
               </tr>
             ) : (
               filteredData.map((row, idx) => (
-                <tr key={row._id || idx}>
+                <tr key={row._id || idx} className={getRowClassName(row)}>
                   {columns.map((col, cIdx) => (
                     <td key={cIdx}>
                       {col.render

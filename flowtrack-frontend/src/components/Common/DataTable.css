@@ -152,3 +152,25 @@
 .action-btn.delete { background: #ffebee; color: #c62828; }
 .action-btn.approve { background: #e8f5e9; color: #2e7d32; }
 .action-btn.reject { background: #ffebee; color: #c62828; }
+
+/* Role badge + manager highlight */
+.role-badge {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+}
+
+.role-badge.admin { background: #ede7f6; color: #5e35b1; }
+.role-badge.manager { background: #e0f2fe; color: #0277bd; }
+.role-badge.employee { background: #e8f5e9; color: #2e7d32; }
+
+.data-table tr.highlight-manager {
+  background: #f0f9ff;
+}
+
+.dark .data-table tr.highlight-manager {
+  background: #1e293b;
+}

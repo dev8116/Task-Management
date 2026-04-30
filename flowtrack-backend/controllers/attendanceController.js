@@ -184,7 +184,7 @@ exports.getAttendance = async (req, res) => {
     if (status) query.status = status;
 
     const attendance = await Attendance.find(query)
-      .populate("user", "name email department manager")
+      .populate("user", "name email department manager role")
       .sort({ date: -1 });
 
     res.json(attendance);
