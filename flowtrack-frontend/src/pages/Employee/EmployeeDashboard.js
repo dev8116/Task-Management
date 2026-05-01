@@ -90,39 +90,17 @@ const EmployeeDashboard = () => {
     }
   };
 
-  const handleCheckIn = async () => {
-    try {
-      await API.post('/attendance/check-in');
-      toast.success('Checked in successfully!');
-      fetchData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Check-in failed');
-    }
-  };
-
-  const handleCheckOut = async () => {
-    try {
-      await API.post('/attendance/check-out');
-      toast.success('Checked out successfully!');
-      fetchData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Check-out failed');
-    }
-  };
-
   if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>;
 
   const safeTasks = Array.isArray(tasks) ? tasks : [];
-
   const derivedStats = deriveStatsFromTasks(safeTasks);
   const mergedPerf = {
     ...derivedStats,
-    ...performance, // API values override derived if present
+    ...performance,
   };
 
   const now = new Date();
 
-  // upcoming & overdue (exclude completed)
   const upcomingDeadlines = safeTasks
     .filter((t) => {
       if (!t) return false;
@@ -139,13 +117,12 @@ const EmployeeDashboard = () => {
       return da - db;
     });
 
-  // recently completed (show last 5 by deadline or updatedAt)
   const completedRecent = safeTasks
     .filter((t) => normalizeStatus(t.status) === 'completed')
     .sort((a, b) => {
       const da = a.deadline ? new Date(a.deadline) : new Date(0);
       const db = b.deadline ? new Date(b.deadline) : new Date(0);
-      return db - da; // most recent first
+      return db - da;
     })
     .slice(0, 5);
 
@@ -157,8 +134,8 @@ const EmployeeDashboard = () => {
     { name: 'Overdue', value: mergedPerf.overdueTasks || 0 },
   ];
 
-  const hasCheckedIn = todayAttendance?.checkIn;
-  const hasCheckedOut = todayAttendance?.checkOut;
+  const hasCheckedIn = !!todayAttendance?.checkIn;
+  const hasCheckedOut = !!todayAttendance?.checkOut;
 
   const attendanceEvents = [];
   if (hasCheckedIn) {
@@ -181,24 +158,47 @@ const EmployeeDashboard = () => {
     return deadline.toLocaleDateString();
   };
 
+  // ✅ Single button: user clicks -> go to MyAttendance page to do selfie + check-in/out
+  const openMyAttendance = () => navigate('/employee/attendance');
+
+  const attendanceBtnLabel = !hasCheckedIn
+    ? 'Check In'
+    : !hasCheckedOut
+    ? 'Check Out'
+    : '✅ Done for today';
+
+  const attendanceBtnClass = !hasCheckedIn
+    ? 'quick-action-btn'
+    : !hasCheckedOut
+    ? 'quick-action-btn checked-in'
+    : 'quick-action-btn checked-out';
+
   return (
     <div className="employee-dashboard">
       <h2>Employee Dashboard</h2>
 
       {/* Quick Actions */}
       <div className="quick-actions">
-        {!hasCheckedIn ? (
-          <button className="quick-action-btn" onClick={handleCheckIn}><FiLogIn /> Check In</button>
-        ) : !hasCheckedOut ? (
-          <button className="quick-action-btn checked-in" onClick={handleCheckOut}><FiLogOut /> Check Out</button>
-        ) : (
-          <button className="quick-action-btn checked-out" disabled>✅ Done for today</button>
-        )}
+        <button
+          className={attendanceBtnClass}
+          onClick={openMyAttendance}
+          disabled={hasCheckedIn && hasCheckedOut}
+          title="Open My Attendance"
+        >
+          {!hasCheckedIn ? <FiLogIn /> : <FiLogOut />} {attendanceBtnLabel}
+        </button>
+
         <button className="quick-action-btn" onClick={() => navigate('/employee/tasks')}>
           <FiCheckSquare /> My Tasks ({safeTasks.length})
         </button>
-        <button className="quick-action-btn" onClick={() => navigate('/employee/leaves')}><FiClock /> Apply Leave</button>
-        <button className="quick-action-btn" onClick={() => navigate('/employee/performance')}><FiTrendingUp /> Performance</button>
+
+        <button className="quick-action-btn" onClick={() => navigate('/employee/leaves')}>
+          <FiClock /> Apply Leave
+        </button>
+
+        <button className="quick-action-btn" onClick={() => navigate('/employee/performance')}>
+          <FiTrendingUp /> Performance
+        </button>
       </div>
 
       {/* Deadline Warnings */}
@@ -245,7 +245,7 @@ const EmployeeDashboard = () => {
         <DashboardCard title="Completion Rate" value={`${mergedPerf.completionRate || 0}%`} icon={<FiTrendingUp />} color="#6a1b9a" />
       </div>
 
-      {/* Recent Tasks (all statuses) */}
+      {/* Recent Tasks */}
       {safeTasks.length > 0 && (
         <div style={{
           background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '24px',

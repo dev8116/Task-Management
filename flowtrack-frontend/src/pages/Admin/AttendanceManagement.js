@@ -11,6 +11,7 @@ const AttendanceManagement = () => {
 
   useEffect(() => {
     fetchAttendance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchAttendance = async () => {
@@ -20,10 +21,11 @@ const AttendanceManagement = () => {
       if (startDate) params.push(`startDate=${startDate}`);
       if (endDate) params.push(`endDate=${endDate}`);
       if (params.length) url += '?' + params.join('&');
+
       const { data } = await API.get(url);
-      setAttendance(data);
+      setAttendance(Array.isArray(data?.data) ? data.data : data || []);
     } catch (err) {
-      toast.error('Failed to fetch attendance');
+      toast.error(err?.response?.data?.message || 'Failed to fetch attendance');
     }
   };
 
@@ -32,9 +34,9 @@ const AttendanceManagement = () => {
     fetchAttendance();
   };
 
-  const formatTime = (d) => d ? new Date(d).toLocaleTimeString() : '--';
+  const formatTime = (d) => (d ? new Date(d).toLocaleTimeString() : '--');
 
-  const filteredAttendance = attendance.filter((row) => {
+  const filteredAttendance = (attendance || []).filter((row) => {
     if (roleFilter === 'all') return true;
     return row.user?.role === roleFilter;
   });
@@ -51,9 +53,17 @@ const AttendanceManagement = () => {
       ),
     },
     { header: 'Date', accessor: 'date' },
+
+    // Normal attendance
     { header: 'Check In', render: (row) => formatTime(row.checkIn) },
     { header: 'Check Out', render: (row) => formatTime(row.checkOut) },
-    { header: 'Total Hours', render: (row) => row.totalHours ? `${row.totalHours}h` : '--' },
+    { header: 'Total Hours', render: (row) => (row.totalHours ? `${row.totalHours}h` : '--') },
+
+    // ✅ Overtime details (added)
+    { header: 'OT In', render: (row) => formatTime(row.overtimeCheckIn) },
+    { header: 'OT Out', render: (row) => formatTime(row.overtimeCheckOut) },
+    { header: 'OT Hours', render: (row) => (row.overtimeHours ? `${row.overtimeHours}h` : '--') },
+
     {
       header: 'Status',
       render: (row) => (
@@ -71,11 +81,19 @@ const AttendanceManagement = () => {
       </div>
 
       <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }} />
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
+        />
         <span>to</span>
-        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }} />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
+        />
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
