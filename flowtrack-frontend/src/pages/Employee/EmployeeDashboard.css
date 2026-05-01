@@ -1,20 +1,29 @@
 .employee-dashboard {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 .employee-dashboard h2 {
   font-size: 22px;
-  font-weight: 700;
-  margin-bottom: 12px;
+  font-weight: 800;
+  margin-bottom: 6px;
 }
 
 /* Quick actions */
 .quick-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(12, 1fr);
   gap: 14px;
+}
+
+/* Make attendance button larger (employee-specific look) */
+.quick-actions > button:first-child {
+  grid-column: span 6;
+}
+
+.quick-actions > button:not(:first-child) {
+  grid-column: span 3;
 }
 
 .quick-action-btn {
@@ -26,7 +35,7 @@
   text-align: center;
   transition: all 0.2s;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -64,7 +73,7 @@
 .deadline-warning {
   background: #fff7ed;
   border: 1px solid #fed7aa;
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 16px;
 }
 
@@ -86,14 +95,15 @@
 }
 
 .deadline-warning li {
-  padding: 4px 0;
+  padding: 6px 0;
   font-size: 13px;
   display: flex;
+  gap: 10px;
   justify-content: space-between;
 }
 
 .deadline-warning .task-name {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .deadline-warning .task-date {
@@ -104,11 +114,15 @@
 /* Cards */
 .dashboard-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 14px;
 }
 
-/* Recent tasks table */
+.dashboard-cards > * {
+  grid-column: span 3;
+}
+
+/* Table responsive helper */
 .employee-dashboard table {
   width: 100%;
   border-collapse: collapse;
@@ -136,4 +150,27 @@
 .dark .employee-dashboard td {
   border-bottom-color: #2d344a;
   color: #ddd;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .quick-actions > button:first-child { grid-column: span 12; }
+  .quick-actions > button:not(:first-child) { grid-column: span 6; }
+
+  .dashboard-cards > * { grid-column: span 6; }
+}
+
+@media (max-width: 640px) {
+  .quick-actions { grid-template-columns: 1fr; }
+  .quick-actions > button { grid-column: auto; }
+
+  .dashboard-cards { grid-template-columns: 1fr; }
+  .dashboard-cards > * { grid-column: auto; }
+
+  /* tables scroll on small screens */
+  .employee-dashboard table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
 }

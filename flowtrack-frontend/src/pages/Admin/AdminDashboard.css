@@ -1,41 +1,94 @@
-.dashboard-page {
+.admin-dashboard {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-}
-
-.dashboard-page h2 {
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: 0.4px;
-  margin-bottom: 6px;
-}
-
-/* KPI Tiles */
-.dashboard-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
 
-/* Chart Row */
-.dashboard-charts {
+.admin-hero {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  align-items: start;
+}
+
+.admin-hero h2 {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.admin-hero-subtitle {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.admin-health {
+  border: 1px solid #eef0f4;
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+  box-shadow: 0 6px 16px rgba(13, 38, 76, 0.06);
+}
+
+.dark .admin-health {
+  background: #1f2333;
+  border-color: #2d344a;
+}
+
+.admin-health-title {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.admin-health-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.admin-health-rate {
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.admin-health-label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-health-meta {
+  margin-top: 8px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.admin-health--ok .admin-health-label { color: #16a34a; }
+.admin-health--warn .admin-health-label { color: #d97706; }
+.admin-health--bad .admin-health-label { color: #dc2626; }
+
+.admin-kpis {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 14px;
+}
+
+.admin-kpis > * {
+  grid-column: span 4;
+}
+
+.admin-grid {
   display: grid;
   grid-template-columns: 1.3fr 1fr;
-  gap: 20px;
+  gap: 16px;
 }
 
-/* Bottom Panels */
-.dashboard-bottom {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: 20px;
-}
-
-/* Panels */
-.dashboard-charts > div,
-.dashboard-bottom > div,
-.dashboard-page > div[style*="box-shadow"] {
+.panel {
   background: #fff;
   border: 1px solid #eef0f4;
   border-radius: 14px;
@@ -43,46 +96,93 @@
   box-shadow: 0 6px 16px rgba(13, 38, 76, 0.06);
 }
 
-.dark .dashboard-charts > div,
-.dark .dashboard-bottom > div,
-.dark .dashboard-page > div[style*="box-shadow"] {
+.dark .panel {
   background: #1f2333;
   border-color: #2d344a;
 }
 
-/* Table styles in recent users */
-.dashboard-page table {
-  width: 100%;
-  border-collapse: collapse;
+.panel-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
-.dashboard-page th {
-  text-align: left;
-  padding: 8px;
+.panel-header h3 {
+  font-size: 16px;
+  margin: 0;
+  font-weight: 800;
+}
+
+.panel-hint {
   font-size: 12px;
-  color: #888;
+  color: #6b7280;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+}
+
+.dash-table th {
+  text-align: left;
+  padding: 10px 8px;
+  font-size: 12px;
+  color: #6b7280;
   border-bottom: 1px solid #eee;
 }
 
-.dashboard-page td {
+.dash-table td {
   padding: 10px 8px;
   font-size: 13px;
   border-bottom: 1px solid #f5f5f5;
 }
 
-.dark .dashboard-page th {
+.dark .dash-table th,
+.dark .dash-table td {
   border-bottom-color: #2d344a;
-  color: #aaa;
 }
 
-.dark .dashboard-page td {
-  border-bottom-color: #2d344a;
-  color: #ddd;
+.muted { color: #6b7280; }
+
+.table-empty {
+  padding: 18px;
+  text-align: center;
+  color: #9ca3af;
 }
 
-@media (max-width: 1024px) {
-  .dashboard-charts,
-  .dashboard-bottom {
-    grid-template-columns: 1fr;
-  }
+.pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pill--ok { background: #dcfce7; color: #166534; }
+.pill--bad { background: #fee2e2; color: #991b1b; }
+
+.pill--role { border: 1px solid transparent; }
+.pill--admin { background: #e0f2fe; color: #075985; }
+.pill--manager { background: #f3e8ff; color: #6b21a8; }
+.pill--employee { background: #dcfce7; color: #166534; }
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .admin-hero { grid-template-columns: 1fr; }
+  .admin-grid { grid-template-columns: 1fr; }
+  .admin-kpis > * { grid-column: span 6; }
+}
+
+@media (max-width: 640px) {
+  .admin-kpis { grid-template-columns: repeat(6, 1fr); }
+  .admin-kpis > * { grid-column: span 6; }
+  .panel { padding: 12px; }
 }
