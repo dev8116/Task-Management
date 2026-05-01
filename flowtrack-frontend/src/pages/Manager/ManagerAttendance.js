@@ -5,6 +5,13 @@ import { toast } from 'react-toastify';
 import { FiLogIn, FiLogOut, FiCamera, FiCheckCircle } from 'react-icons/fi';
 import '../Employee/MyAttendance.css';
 
+const isAfter6PM = () => {
+  const d = new Date();
+  const h = d.getHours();
+  const m = d.getMinutes();
+  return h > 18 || (h === 18 && m >= 0);
+};
+
 const ManagerAttendance = () => {
   const [attendance, setAttendance] = useState([]);
   const [todayStatus, setTodayStatus] = useState(null);
@@ -13,6 +20,8 @@ const ManagerAttendance = () => {
   const [selfieBlob, setSelfieBlob] = useState(null);
   const [selfiePreview, setSelfiePreview] = useState('');
 
+  const [otLoading, setOtLoading] = useState(false);
+
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -20,6 +29,7 @@ const ManagerAttendance = () => {
   useEffect(() => {
     fetchData();
     return () => stopCamera();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
@@ -28,7 +38,7 @@ const ManagerAttendance = () => {
         API.get('/attendance'),
         API.get('/attendance/today'),
       ]);
-      setAttendance(attRes.data);
+      setAttendance(attRes.data || []);
       setTodayStatus(todayRes.data);
     } catch (err) {
       toast.error('Failed to fetch attendance');
@@ -98,15 +108,54 @@ const ManagerAttendance = () => {
   const handleCheckIn = () => submitFaceAttendance('face-check-in');
   const handleCheckOut = () => submitFaceAttendance('face-check-out');
 
-  const formatTime = (d) => d ? new Date(d).toLocaleTimeString() : '--';
-  const hasCheckedIn = todayStatus?.checkIn;
-  const hasCheckedOut = todayStatus?.checkOut;
+  // ---- OVERTIME ----
+  const overtimeCheckIn = async () => {
+    setOtLoading(true);
+    try {
+      await API.post('/attendance/overtime-check-in');
+      toast.success('Overtime checked in!');
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Overtime check-in failed');
+    } finally {
+      setOtLoading(false);
+    }
+  };
+
+  const overtimeCheckOut = async () => {
+    setOtLoading(true);
+    try {
+      await API.post('/attendance/overtime-check-out');
+      toast.success('Overtime checked out!');
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Overtime check-out failed');
+    } finally {
+      setOtLoading(false);
+    }
+  };
+
+  const formatTime = (d) => (d ? new Date(d).toLocaleTimeString() : '--');
+
+  const hasCheckedIn = !!todayStatus?.checkIn;
+  const hasCheckedOut = !!todayStatus?.checkOut;
+
+  const hasOtIn = !!todayStatus?.overtimeCheckIn;
+  const hasOtOut = !!todayStatus?.overtimeCheckOut;
+
+  const showOvertimeButtons = isAfter6PM() && hasCheckedOut;
 
   const columns = [
     { header: 'Date', accessor: 'date' },
     { header: 'Check In', render: (row) => formatTime(row.checkIn) },
     { header: 'Check Out', render: (row) => formatTime(row.checkOut) },
-    { header: 'Total Hours', render: (row) => row.totalHours ? `${row.totalHours}h` : '--' },
+    { header: 'Total Hours', render: (row) => (row.totalHours ? `${row.totalHours}h` : '--') },
+
+    // Overtime columns
+    { header: 'OT In', render: (row) => formatTime(row.overtimeCheckIn) },
+    { header: 'OT Out', render: (row) => formatTime(row.overtimeCheckOut) },
+    { header: 'OT Hours', render: (row) => (row.overtimeHours ? `${row.overtimeHours}h` : '--') },
+
     {
       header: 'Status',
       render: (row) => (
@@ -165,6 +214,17 @@ const ManagerAttendance = () => {
             {hasCheckedOut ? '✅ Completed' : hasCheckedIn ? '🟢 Working' : '⏳ Not Started'}
           </div>
         </div>
+
+        <div className="today-status-item">
+          <div className="label">Overtime</div>
+          <div className="value">
+            {hasOtOut
+              ? `✅ Completed (${todayStatus?.overtimeHours || 0}h)`
+              : hasOtIn
+              ? '🟠 In Overtime'
+              : '—'}
+          </div>
+        </div>
       </div>
 
       {/* Action Buttons */}
@@ -176,6 +236,26 @@ const ManagerAttendance = () => {
           <FiLogOut /> {hasCheckedOut ? 'Already Checked Out' : 'Check Out'}
         </button>
       </div>
+
+      {/* Overtime Buttons (after 6 PM and after normal checkout) */}
+      {showOvertimeButtons && (
+        <div className="attendance-actions overtime-actions">
+          <button
+            className="attendance-btn overtime-in"
+            onClick={overtimeCheckIn}
+            disabled={otLoading || hasOtIn}
+          >
+            <FiLogIn /> {hasOtIn ? 'OT Checked In' : 'Overtime Check In'}
+          </button>
+          <button
+            className="attendance-btn overtime-out"
+            onClick={overtimeCheckOut}
+            disabled={otLoading || !hasOtIn || hasOtOut}
+          >
+            <FiLogOut /> {hasOtOut ? 'OT Checked Out' : 'Overtime Check Out'}
+          </button>
+        </div>
+      )}
 
       {/* Attendance History */}
       <DataTable title={`Attendance History (${attendance.length})`} columns={columns} data={attendance} />

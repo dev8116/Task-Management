@@ -5,6 +5,11 @@
   flex-wrap: wrap;
 }
 
+/* overtime row spacing */
+.attendance-actions.overtime-actions {
+  margin-top: -10px;
+}
+
 .attendance-btn {
   padding: 14px 28px;
   border: none;
@@ -34,6 +39,23 @@
 
 .attendance-btn.check-out:hover {
   background: #b71c1c;
+}
+
+/* ---- Overtime buttons ---- */
+.attendance-btn.overtime-in {
+  background: #2563eb;
+  color: #fff;
+}
+.attendance-btn.overtime-in:hover {
+  background: #1d4ed8;
+}
+
+.attendance-btn.overtime-out {
+  background: #7c3aed;
+  color: #fff;
+}
+.attendance-btn.overtime-out:hover {
+  background: #6d28d9;
 }
 
 .attendance-btn:disabled {

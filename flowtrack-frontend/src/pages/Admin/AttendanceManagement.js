@@ -82,7 +82,7 @@ const AttendanceManagement = () => {
           style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
         >
           <option value="all">All Roles</option>
-          <option value="admin">Admin</option>
+          {/* <option value="admin">Admin</option> */}
           <option value="manager">Manager</option>
           <option value="employee">Employee</option>
         </select>

@@ -7,6 +7,14 @@ const path = require("path");
 const https = require("https");
 const http = require("http");
 
+// ----- TIME RULE HELPERS -----
+const toMinutes = (d) => d.getHours() * 60 + d.getMinutes();
+const CHECKIN_START = 10 * 60;        // 10:00
+const CHECKIN_END = 11 * 60;          // 11:00
+const AUTO_CHECKOUT_TIME = 18 * 60;   // 18:00 (6PM)
+
+const isEmployeeOrManager = (role) => role === "employee" || role === "manager";
+
 const readRemote = (url) =>
   new Promise((resolve, reject) => {
     const lib = url.startsWith("https") ? https : http;
@@ -46,25 +54,35 @@ const verifyFace = async (req) => {
   return { ok: true };
 };
 
-// @desc    Mark check-in
-// @route   POST /api/attendance/check-in
+// @desc    Mark check-in (10–11 AM only for employee/manager)
 exports.checkIn = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
 
     const existing = await Attendance.findOne({ user: req.user._id, date: today });
-    if (existing) return res.status(400).json({ message: "Already checked in for today" });
+    if (existing?.checkIn) {
+      return res.status(400).json({ message: "Already checked in for today" });
+    }
 
     const now = new Date();
-    const hour = now.getHours();
-    const status = hour >= 10 ? "Late" : "Present";
+    const mins = toMinutes(now);
 
-    const attendance = await Attendance.create({
-      user: req.user._id,
-      date: today,
-      checkIn: now,
-      status,
-    });
+    if (isEmployeeOrManager(req.user.role)) {
+      if (mins < CHECKIN_START || mins > CHECKIN_END) {
+        return res.status(400).json({
+          message: "Check-in allowed only between 10:00 AM and 11:00 AM",
+        });
+      }
+    }
+
+    // if later you allow late check-in, this will work:
+    const status = mins > CHECKIN_END ? "Late" : "Present";
+
+    const attendance = await Attendance.findOneAndUpdate(
+      { user: req.user._id, date: today },
+      { $setOnInsert: { user: req.user._id, date: today }, $set: { checkIn: now, status } },
+      { upsert: true, new: true }
+    );
 
     const actorDoc = await User.findById(req.user._id);
     const recipients = await getRecipients(actorDoc, []);
@@ -86,7 +104,6 @@ exports.checkIn = async (req, res) => {
 };
 
 // @desc    Mark check-out
-// @route   POST /api/attendance/check-out
 exports.checkOut = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
@@ -123,12 +140,10 @@ exports.checkOut = async (req, res) => {
 };
 
 // @desc    Face check-in
-// @route   POST /api/attendance/face-check-in
 exports.faceCheckIn = async (req, res) => {
   try {
     const verification = await verifyFace(req);
     if (!verification.ok) return res.status(401).json({ message: verification.message });
-
     return exports.checkIn(req, res);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -136,20 +151,76 @@ exports.faceCheckIn = async (req, res) => {
 };
 
 // @desc    Face check-out
-// @route   POST /api/attendance/face-check-out
 exports.faceCheckOut = async (req, res) => {
   try {
     const verification = await verifyFace(req);
     if (!verification.ok) return res.status(401).json({ message: verification.message });
-
     return exports.checkOut(req, res);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// @desc    Overtime check-in (after 6 PM only)
+exports.overtimeCheckIn = async (req, res) => {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const mins = toMinutes(now);
+
+    if (!isEmployeeOrManager(req.user.role)) {
+      return res.status(403).json({ message: "Only employee/manager can do overtime check-in" });
+    }
+
+    if (mins < AUTO_CHECKOUT_TIME) {
+      return res.status(400).json({ message: "Overtime check-in allowed only after 6:00 PM" });
+    }
+
+    const record = await Attendance.findOneAndUpdate(
+      { user: req.user._id, date: today },
+      { $setOnInsert: { user: req.user._id, date: today } },
+      { upsert: true, new: true }
+    );
+
+    if (record.overtimeCheckIn) {
+      return res.status(400).json({ message: "Already overtime checked in" });
+    }
+
+    record.overtimeCheckIn = now;
+    await record.save();
+
+    return res.status(201).json(record);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Overtime check-out (manual)
+exports.overtimeCheckOut = async (req, res) => {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+
+    const record = await Attendance.findOne({ user: req.user._id, date: today });
+    if (!record?.overtimeCheckIn) {
+      return res.status(400).json({ message: "You have not overtime checked in today" });
+    }
+    if (record.overtimeCheckOut) {
+      return res.status(400).json({ message: "Already overtime checked out" });
+    }
+
+    record.overtimeCheckOut = now;
+    const diffMs = now - record.overtimeCheckIn;
+    record.overtimeHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+    await record.save();
+
+    return res.json(record);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Get attendance records (scoped)
-// @route   GET /api/attendance
 exports.getAttendance = async (req, res) => {
   try {
     const { userId, startDate, endDate, status } = req.query;
@@ -158,7 +229,6 @@ exports.getAttendance = async (req, res) => {
     if (req.user.role === "employee") {
       query.user = req.user._id;
     } else if (req.user.role === "manager") {
-      // Only your team
       const team = await User.find({ manager: req.user._id }).select("_id");
       const teamIds = team.map((u) => u._id.toString());
 
@@ -170,7 +240,7 @@ exports.getAttendance = async (req, res) => {
         query.user = userId;
       }
     } else if (userId) {
-      query.user = userId; // admin or higher roles could use this
+      query.user = userId;
     }
 
     if (startDate && endDate) {
@@ -194,7 +264,6 @@ exports.getAttendance = async (req, res) => {
 };
 
 // @desc    Get today's attendance status
-// @route   GET /api/attendance/today
 exports.getTodayAttendance = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];

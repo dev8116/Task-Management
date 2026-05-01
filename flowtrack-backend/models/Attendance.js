@@ -4,10 +4,22 @@ const attendanceSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     date: { type: String, required: true },
+
     checkIn: { type: Date, default: null },
     checkOut: { type: Date, default: null },
-    status: { type: String, enum: ['Present', 'Absent', 'Half Day', 'Late'], default: 'Present' },
+
+    // normal day status
+    status: {
+      type: String,
+      enum: ['Present', 'Absent', 'Half Day', 'Late'],
+      default: 'Present',
+    },
     totalHours: { type: Number, default: 0 },
+
+    // ---- OVERTIME ----
+    overtimeCheckIn: { type: Date, default: null },
+    overtimeCheckOut: { type: Date, default: null },
+    overtimeHours: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

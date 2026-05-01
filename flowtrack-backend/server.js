@@ -4,6 +4,7 @@ const morgan = require("morgan");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const seedAdmin = require("./utils/seedAdmin");
+const { startAttendanceScheduler } = require("./utils/attendanceScheduler"); // ✅ require first
 
 // Route imports
 const authRoutes = require("./routes/authRoutes");
@@ -23,9 +24,10 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
-// Connect DB then seed default admin
+// Connect DB then seed default admin + start scheduler
 connectDB().then(() => {
   seedAdmin(); // creates admin@flowtrack.com / Admin@123 if it doesn't exist
+  startAttendanceScheduler(); // ✅ start after DB is connected
 });
 
 // Routes
