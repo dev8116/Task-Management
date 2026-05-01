@@ -1,0 +1,139 @@
+/* ==========================================================================
+   Global Responsive Helpers (FlowTrack)
+   Import this once in App.css (or index.js) to apply to all pages.
+   ========================================================================== */
+
+/* ---------- Base resets / safer layout ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent very long strings from breaking layout */
+body {
+  overflow-x: hidden;
+}
+
+/* ---------- Generic containers ---------- */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding-inline: 12px;
+  }
+}
+
+/* ---------- Responsive grids helpers ---------- */
+.grid {
+  display: grid;
+  gap: 14px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1024px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .grid-4,
+  .grid-3,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Responsive table helper ---------- */
+/* Wrap tables in <div class="table-scroll"> ... </div> when needed */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Make table cells not explode on small screens */
+.table-scroll table,
+table.responsive-table {
+  min-width: 700px;
+}
+
+/* On small screens, allow horizontal scroll */
+@media (max-width: 640px) {
+  .table-scroll table,
+  table.responsive-table {
+    min-width: 640px;
+  }
+}
+
+/* ---------- Generic flex helpers ---------- */
+.flex {
+  display: flex;
+}
+.flex-wrap {
+  flex-wrap: wrap;
+}
+.gap-8 {
+  gap: 8px;
+}
+.gap-10 {
+  gap: 10px;
+}
+.gap-12 {
+  gap: 12px;
+}
+.gap-14 {
+  gap: 14px;
+}
+
+/* Stack things on mobile */
+@media (max-width: 640px) {
+  .stack-sm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ---------- Forms / inputs mobile friendly ---------- */
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  /* Bigger tap targets on mobile */
+  button,
+  .btn,
+  .quick-action-btn,
+  .attendance-btn,
+  .camera-btn {
+    min-height: 44px;
+  }
+}
