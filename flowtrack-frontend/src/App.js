@@ -13,7 +13,8 @@ import "./App.css";
 
 // Auth Pages
 import Login from "./pages/Auth/Login";
-import ForgotPassword from "./pages/Auth/ForgotPassword";
+import ForgotPasswordMobile from "./pages/Auth/ForgotPasswordMobile";
+import ResetPassword from "./pages/Auth/ResetPassword";
 
 // Profile Page
 import ProfilePage from "./pages/Profile/ProfilePage";
@@ -75,7 +76,10 @@ const AppRoutes = () => {
         path="/login"
         element={user ? <Navigate to={getDashboardRedirect()} /> : <Login />}
       />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
+
+      {/* Forgot/Reset Password */}
+      <Route path="/forgot-password" element={<ForgotPasswordMobile />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
 
       {/* ─── Admin Routes ─────────────────────────────────── */}
       <Route
@@ -131,27 +135,6 @@ const AppRoutes = () => {
         <Route path="performance" element={<MyPerformance />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
-
-      <Route
-        path="/my-tasks"
-        element={
-          <ProtectedRoute allowedRoles={["employee"]}>
-            <Layout>
-              <MyTasks />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/manager/tasks"
-        element={
-          <ProtectedRoute allowedRoles={["manager"]}>
-            <Layout>
-              <ManagerTasks />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
 
       {/* ─── Global Notifications (all authenticated roles) ─ */}
       <Route

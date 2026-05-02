@@ -1,11 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, getMe, forgotPassword } = require('../controllers/authController');
+
+const {
+  register,
+  login,
+  getMe,
+  forgotPasswordMobile,
+  resetPassword,
+} = require('../controllers/authController');
+
 const { protect } = require('../middleware/authMiddleware');
 
 router.post('/register', register);
 router.post('/login', login);
 router.get('/me', protect, getMe);
-router.post('/forgot-password', forgotPassword);
+
+// Forgot/Reset via mobile
+router.post('/forgot-password-mobile', forgotPasswordMobile);
+router.put('/reset-password/:token', resetPassword);
 
 module.exports = router;
