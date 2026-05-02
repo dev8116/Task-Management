@@ -1,0 +1,23 @@
+.ajax-top-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #2563eb, #22c55e, #f59e0b);
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.ajax-top-loader.show {
+  opacity: 1;
+  width: 100%;
+  animation: ajax-loader-move 1.1s infinite linear;
+}
+
+@keyframes ajax-loader-move {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.2); }
+  100% { filter: brightness(1); }
+}

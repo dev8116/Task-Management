@@ -39,8 +39,10 @@ const attendanceSchema = new mongoose.Schema(
     overtimeCheckOut: { type: Date, default: null },
     overtimeHours: { type: Number, default: 0 },
 
-    // ---- RANDOM SELFIE VERIFICATION ----
+    // ---- SELFIE VERIFICATION ----
+    // Used for: 2 checks within first 10 minutes after employee check-in
     selfieChecks: { type: [selfieCheckSchema], default: [] },
+
     autoCheckoutReason: { type: String, default: '' },
   },
   { timestamps: true }

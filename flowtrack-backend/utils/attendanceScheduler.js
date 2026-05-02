@@ -22,6 +22,7 @@ function startAttendanceScheduler() {
       const diffMs = a.checkOut - a.checkIn;
       a.totalHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
       if (a.totalHours < 4) a.status = "Half Day";
+      a.autoCheckoutReason = a.autoCheckoutReason || "Auto checkout after 6PM";
       await a.save();
     }
   });
@@ -49,7 +50,37 @@ function startAttendanceScheduler() {
     }
   });
 
-  console.log("Attendance scheduler started (auto checkout @6PM, overtime auto checkout after 4h).");
+  // ✅ Every 1 minute: if selfie check deadline missed -> auto checkout
+  cron.schedule("*/1 * * * *", async () => {
+    const now = new Date();
+    const today = todayStr();
+
+    const open = await Attendance.find({
+      date: today,
+      checkIn: { $ne: null },
+      checkOut: null,
+      "selfieChecks.status": "pending",
+    });
+
+    for (const a of open) {
+      const missed = (a.selfieChecks || []).find((c) => c.status === "pending" && now > c.responseDeadline);
+      if (!missed) continue;
+
+      missed.status = "missed";
+      missed.reason = "Selfie not submitted before deadline";
+
+      a.checkOut = now;
+      a.autoCheckoutReason = "Missed selfie verification (scheduler)";
+
+      const diffMs = a.checkOut - a.checkIn;
+      a.totalHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+      if (a.totalHours < 4) a.status = "Half Day";
+
+      await a.save();
+    }
+  });
+
+  console.log("Attendance scheduler started (auto checkout @6PM, overtime auto checkout after 4h, selfie missed checks).");
 }
 
 module.exports = { startAttendanceScheduler };

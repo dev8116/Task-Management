@@ -11,7 +11,7 @@ const {
   overtimeCheckIn,
   overtimeCheckOut,
 
-  // NEW selfie verification APIs
+  // Selfie verification APIs
   getSelfieCheckRequirement,
   submitSelfieCheck,
   checkMissedSelfieDeadlines,
@@ -32,7 +32,7 @@ router.post('/overtime-check-out', protect, overtimeCheckOut);
 router.post('/face-check-in', protect, faceUpload.single('selfie'), faceCheckIn);
 router.post('/face-check-out', protect, faceUpload.single('selfie'), faceCheckOut);
 
-// Random Selfie Verification (Employee only)
+// Selfie Verification (Employee only)
 router.get('/selfie-check', protect, authorize('employee'), getSelfieCheckRequirement);
 router.post('/selfie-check/:checkId', protect, authorize('employee'), faceUpload.single('selfie'), submitSelfieCheck);
 router.get('/selfie-check/missed', protect, authorize('employee'), checkMissedSelfieDeadlines);

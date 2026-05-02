@@ -23,12 +23,16 @@ const MyAttendance = () => {
 
   const [otLoading, setOtLoading] = useState(false);
 
-  // Random selfie verification state
+  // Selfie verification modal state
   const [svOpen, setSvOpen] = useState(false);
   const [svCheck, setSvCheck] = useState(null);
 
+  // Poll refs
   const selfiePollRef = useRef(null);
   const missedPollRef = useRef(null);
+
+  // Prevent reopening same check repeatedly
+  const lastShownCheckIdRef = useRef(null);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -53,6 +57,7 @@ const MyAttendance = () => {
       stopSelfiePolling();
       setSvOpen(false);
       setSvCheck(null);
+      lastShownCheckIdRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todayStatus?.checkIn, todayStatus?.checkOut]);
@@ -71,17 +76,35 @@ const MyAttendance = () => {
   };
 
   const startSelfiePolling = () => {
+    // already running
     if (selfiePollRef.current || missedPollRef.current) return;
+
+    // ✅ For 2 checks in first 10 minutes, polling faster helps UX
+    const pollMs = 10000; // 10 seconds
 
     selfiePollRef.current = setInterval(async () => {
       try {
         const res = await API.get('/attendance/selfie-check');
-        if (res.data?.required && res.data?.check?._id) {
-          setSvCheck(res.data.check);
-          setSvOpen(true);
-        }
-      } catch (e) {}
-    }, 30000);
+        const required = !!res.data?.required;
+        const check = res.data?.check;
+
+        if (!required || !check?._id) return;
+
+        // If modal already open for same check, do nothing
+        if (svOpen && svCheck?._id === check._id) return;
+
+        // If we already showed this check earlier (user closed it), avoid spam
+        if (lastShownCheckIdRef.current === check._id && !svOpen) return;
+
+        lastShownCheckIdRef.current = check._id;
+        setSvCheck(check);
+        setSvOpen(true);
+
+        toast.warn('Selfie verification required now!', { autoClose: 3500 });
+      } catch (e) {
+        // silent: avoid spam errors
+      }
+    }, pollMs);
 
     missedPollRef.current = setInterval(async () => {
       try {
@@ -90,10 +113,13 @@ const MyAttendance = () => {
           toast.error(res.data?.message || 'You missed selfie verification. You were checked out.');
           setSvOpen(false);
           setSvCheck(null);
+          lastShownCheckIdRef.current = null;
           fetchData();
         }
-      } catch (e) {}
-    }, 30000);
+      } catch (e) {
+        // silent
+      }
+    }, pollMs);
   };
 
   const stopSelfiePolling = () => {
@@ -244,6 +270,7 @@ const MyAttendance = () => {
 
       <div className="page-header"><h2>My Attendance</h2></div>
 
+      {/* Face Camera */}
       <div className="camera-card">
         <div className="camera-actions">
           {!cameraOn ? (
@@ -267,6 +294,7 @@ const MyAttendance = () => {
         </div>
       </div>
 
+      {/* Today's Status */}
       <div className="today-status">
         <div className="today-status-item">
           <div className="label">Today's Date</div>
@@ -299,6 +327,7 @@ const MyAttendance = () => {
         </div>
       </div>
 
+      {/* Action Buttons */}
       <div className="attendance-actions">
         <button className="attendance-btn check-in" onClick={handleCheckIn} disabled={hasCheckedIn}>
           <FiLogIn /> {hasCheckedIn ? 'Already Checked In' : 'Check In'}
@@ -308,26 +337,20 @@ const MyAttendance = () => {
         </button>
       </div>
 
+      {/* Overtime Buttons */}
       {showOvertimeButtons && (
         <div className="attendance-actions overtime-actions">
-          <button
-            className="attendance-btn overtime-in"
-            onClick={overtimeCheckIn}
-            disabled={otLoading || hasOtIn}
-          >
+          <button className="attendance-btn overtime-in" onClick={overtimeCheckIn} disabled={otLoading || hasOtIn}>
             <FiLogIn /> {hasOtIn ? 'OT Checked In' : 'Overtime Check In'}
           </button>
 
-          <button
-            className="attendance-btn overtime-out"
-            onClick={overtimeCheckOut}
-            disabled={otLoading || !hasOtIn || hasOtOut}
-          >
+          <button className="attendance-btn overtime-out" onClick={overtimeCheckOut} disabled={otLoading || !hasOtIn || hasOtOut}>
             <FiLogOut /> {hasOtOut ? 'OT Checked Out' : 'Overtime Check Out'}
           </button>
         </div>
       )}
 
+      {/* Attendance History */}
       <DataTable title={`Attendance History (${attendance.length})`} columns={columns} data={attendance} />
     </div>
   );

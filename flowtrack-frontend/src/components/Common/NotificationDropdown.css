@@ -96,3 +96,15 @@
   font-size: 12px;
   color: #ef4444;
 }
+
+.notif-link-btn{
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+.notif-link-btn:hover{
+  text-decoration: underline;
+}

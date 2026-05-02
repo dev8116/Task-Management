@@ -11,6 +11,9 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 
+import { AjaxProvider, useAjax } from "./context/AjaxContext";
+import { configureAjaxHooks } from "./api/axios";
+
 // Auth Pages
 import Login from "./pages/Auth/Login";
 import ForgotPasswordMobile from "./pages/Auth/ForgotPasswordMobile";
@@ -155,12 +158,36 @@ const AppRoutes = () => {
   );
 };
 
+const AjaxBootstrap = ({ children }) => {
+  const ajax = useAjax();
+  const { logout } = useAuth();
+
+  React.useEffect(() => {
+    configureAjaxHooks({
+      start: ajax.start,
+      stop: ajax.stop,
+      unauthorized: () => {
+        logout();
+        // quick redirect on invalid session/token
+        window.location.href = "/login";
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return children;
+};
+
 const App = () => (
   <Router>
     <ThemeProvider>
       <AuthProvider>
-        <AppRoutes />
-        <ToastContainer position="top-right" autoClose={3000} />
+        <AjaxProvider>
+          <AjaxBootstrap>
+            <AppRoutes />
+            <ToastContainer position="top-right" autoClose={3000} />
+          </AjaxBootstrap>
+        </AjaxProvider>
       </AuthProvider>
     </ThemeProvider>
   </Router>

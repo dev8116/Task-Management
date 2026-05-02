@@ -10,80 +10,13 @@ const CHECKIN_START = 10 * 60; // 10:00
 const CHECKIN_END = 11 * 60; // 11:00
 const AUTO_CHECKOUT_TIME = 18 * 60; // 18:00 (6PM)
 
-// Random selfie rules
-const SELFIE_CHECKS_PER_DAY = 5;
-const DEADLINE_MINUTES_MIN = 1;
-const DEADLINE_MINUTES_MAX = 2;
-
 const isEmployeeOrManager = (role) => role === "employee" || role === "manager";
 
+// ✅ NEW RULE: 2 selfie checks within first 10 minutes after check-in
+const SELFIE_CHECKS_FIRST_10_MIN_OFFSETS = [5, 10]; // minutes after check-in
+const SELFIE_RESPONSE_WINDOW_MINUTES = 2; // user must respond within 2 minutes of scheduled time
+
 const minutesBetween = (a, b) => Math.floor((b.getTime() - a.getTime()) / 60000);
-
-const getOfficeEndTime = (now) =>
-  new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 0, 0, 0);
-
-function randomInt(min, max) {
-  return Math.floor(min + Math.random() * (max - min + 1));
-}
-
-function pickRandomTimes({ start, end, count }) {
-  const startMs = start.getTime();
-  const endMs = end.getTime();
-  if (endMs <= startMs) return [];
-
-  const picks = new Set();
-  const maxAttempts = 1000;
-
-  const totalMinutes = Math.max(1, minutesBetween(start, end));
-  let attempts = 0;
-
-  while (picks.size < count && attempts < maxAttempts) {
-    attempts += 1;
-    const offsetMin = randomInt(1, totalMinutes);
-    const t = new Date(startMs + offsetMin * 60 * 1000);
-    picks.add(t.toISOString());
-  }
-
-  return Array.from(picks)
-    .map((iso) => new Date(iso))
-    .sort((a, b) => a.getTime() - b.getTime());
-}
-
-function buildSelfieChecks({ checkInTime, officeEndTime }) {
-  const times = pickRandomTimes({
-    start: checkInTime,
-    end: officeEndTime,
-    count: SELFIE_CHECKS_PER_DAY,
-  });
-
-  return times.map((scheduledAt) => {
-    const deadlineMinutes = randomInt(DEADLINE_MINUTES_MIN, DEADLINE_MINUTES_MAX);
-    const responseDeadline = new Date(scheduledAt.getTime() + deadlineMinutes * 60 * 1000);
-
-    return {
-      scheduledAt,
-      notifiedAt: null,
-      responseDeadline,
-      selfieImage: "",
-      status: "pending",
-      verifiedAt: null,
-      reason: "",
-    };
-  });
-}
-
-// Keep compatibility for existing face-check-in/out endpoints
-const verifyFaceForCheckInOut = async (req) => {
-  if (!req.file?.buffer) return { ok: false, message: "Selfie image is required" };
-
-  const user = await User.findById(req.user._id);
-  if (!user?.avatar) return { ok: false, message: "Please upload a profile photo first" };
-
-  const result = await verifyEmployeeFace(user.avatar, req.file.buffer);
-  if (!result.ok) return { ok: false, message: result.reason || "Face not matched" };
-
-  return { ok: true };
-};
 
 async function safeActivityLog({
   userId,
@@ -144,6 +77,37 @@ async function autoCheckoutAttendance({ attendance, reason, actorUser }) {
   return attendance;
 }
 
+// Keep compatibility for existing face-check-in/out endpoints
+const verifyFaceForCheckInOut = async (req) => {
+  if (!req.file?.buffer) return { ok: false, message: "Selfie image is required" };
+
+  const user = await User.findById(req.user._id);
+  if (!user?.avatar) return { ok: false, message: "Please upload a profile photo first" };
+
+  const result = await verifyEmployeeFace(user.avatar, req.file.buffer);
+  if (!result.ok) return { ok: false, message: result.reason || "Face not matched" };
+
+  return { ok: true };
+};
+
+// ✅ Build 2 checks within first 10 minutes
+function buildSelfieChecksFirst10Minutes({ checkInTime }) {
+  return SELFIE_CHECKS_FIRST_10_MIN_OFFSETS.map((offsetMin) => {
+    const scheduledAt = new Date(checkInTime.getTime() + offsetMin * 60 * 1000);
+    const responseDeadline = new Date(scheduledAt.getTime() + SELFIE_RESPONSE_WINDOW_MINUTES * 60 * 1000);
+
+    return {
+      scheduledAt,
+      notifiedAt: null,
+      responseDeadline,
+      selfieImage: "",
+      status: "pending",
+      verifiedAt: null,
+      reason: "",
+    };
+  });
+}
+
 // @desc    Mark check-in (10–11 AM only for employee/manager)
 exports.checkIn = async (req, res) => {
   try {
@@ -173,13 +137,9 @@ exports.checkIn = async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // Apply only for Employee role
+    // ✅ Apply only for Employee role: schedule 2 checks in first 10 minutes
     if (req.user.role === "employee") {
-      const officeEnd = getOfficeEndTime(now);
-      attendance.selfieChecks = buildSelfieChecks({
-        checkInTime: now,
-        officeEndTime: officeEnd,
-      });
+      attendance.selfieChecks = buildSelfieChecksFirst10Minutes({ checkInTime: now });
       attendance.autoCheckoutReason = "";
       await attendance.save();
     }
@@ -375,7 +335,7 @@ exports.getTodayAttendance = async (req, res) => {
   }
 };
 
-// NEW: GET /api/attendance/selfie-check
+// GET /api/attendance/selfie-check
 exports.getSelfieCheckRequirement = async (req, res) => {
   try {
     if (req.user.role !== "employee") return res.json({ required: false });
@@ -412,7 +372,7 @@ exports.getSelfieCheckRequirement = async (req, res) => {
   }
 };
 
-// NEW: POST /api/attendance/selfie-check/:checkId
+// POST /api/attendance/selfie-check/:checkId
 exports.submitSelfieCheck = async (req, res) => {
   try {
     if (req.user.role !== "employee") {
@@ -523,7 +483,7 @@ exports.submitSelfieCheck = async (req, res) => {
   }
 };
 
-// NEW: GET /api/attendance/selfie-check/missed
+// GET /api/attendance/selfie-check/missed
 exports.checkMissedSelfieDeadlines = async (req, res) => {
   try {
     if (req.user.role !== "employee") return res.json({ missed: false });

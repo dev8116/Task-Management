@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   fetchNotifications,
   fetchUnreadCount,
@@ -19,6 +20,8 @@ const timeAgo = (dateStr) => {
 };
 
 const NotificationDropdown = ({ open, onCountChange }) => {
+  const navigate = useNavigate();
+
   const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -46,9 +49,9 @@ const NotificationDropdown = ({ open, onCountChange }) => {
 
   useEffect(() => {
     if (open) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // optional: small polling to keep badge fresh
   useEffect(() => {
     const id = setInterval(() => {
       fetchUnreadCount()
@@ -56,6 +59,7 @@ const NotificationDropdown = ({ open, onCountChange }) => {
         .catch(() => {});
     }, 30000);
     return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleMarkOne = async (id) => {
@@ -90,6 +94,7 @@ const NotificationDropdown = ({ open, onCountChange }) => {
           Mark all as read
         </button>
       </div>
+
       {loading ? (
         <div className="notif-empty">Loading...</div>
       ) : items.length === 0 ? (
@@ -109,8 +114,15 @@ const NotificationDropdown = ({ open, onCountChange }) => {
           ))}
         </ul>
       )}
+
       <div className="notif-footer">
-        <a href="/notifications">View all</a>
+        <button
+          type="button"
+          className="notif-link-btn"
+          onClick={() => navigate('/notifications')}
+        >
+          View all
+        </button>
         {unreadCount > 0 && <span className="notif-count">{unreadCount} unread</span>}
       </div>
     </div>
