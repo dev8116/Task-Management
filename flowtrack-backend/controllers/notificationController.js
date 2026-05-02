@@ -1,12 +1,34 @@
 const Notification = require("../models/Notification");
 
-// GET /api/notifications
+// GET /api/notifications  (employee/manager => own, admin => own unless using /all)
 exports.getNotifications = async (req, res) => {
   try {
     const list = await Notification.find({ user: req.user._id })
       .sort({ createdAt: -1 })
       .limit(parseInt(req.query.limit || 50, 10))
       .lean();
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /api/notifications/all  (admin only => ALL notifications)
+exports.getAllNotifications = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const limit = parseInt(req.query.limit || 100, 10);
+
+    const list = await Notification.find({})
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate("user", "name email role")
+      .populate("actor", "name email role")
+      .lean();
+
     res.json(list);
   } catch (err) {
     res.status(500).json({ message: err.message });

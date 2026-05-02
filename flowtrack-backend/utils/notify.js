@@ -47,9 +47,9 @@ async function notify(opts) {
   if (!recipients.length) return;
 
   const docs = recipients.map((uid) => ({
-    user: uid,
-    actor,
-    role: actorRole,
+    user: uid,            // recipient
+    actor,                // who did it
+    role: actorRole,      // actor role
     action,
     title,
     description,
@@ -65,24 +65,22 @@ async function notify(opts) {
 }
 
 /**
- * Utility to find admin and manager recipients for a given user/team.
- * @param {Object} actorUserDoc - Mongoose user doc of actor (should include role, manager references if any)
- * @param {ObjectId[]} extraIds - additional user ids to notify (e.g., task assignees)
- * @returns {Promise<ObjectId[]>}
+ * Recipients rule:
+ * - Admins: always receive notifications
+ * - Manager: ONLY the actor's manager (do NOT notify all managers)
+ * - extraIds: any additional recipients (assignees, etc.)
  */
 async function getRecipients(actorUserDoc, extraIds = []) {
   const ids = new Set(extraIds.map(String));
 
-  // Admins
+  // Admins always get notifications
   const admins = await User.find({ role: "admin" }, "_id").lean();
   admins.forEach((a) => ids.add(String(a._id)));
 
-  // Managers (simplified: notify all managers; customize per team if you have team references)
-  const managers = await User.find({ role: "manager" }, "_id").lean();
-  managers.forEach((m) => ids.add(String(m._id)));
-
-  // Remove actor themselves only if not desired for certain actions; keep by default
-  // ids.delete(String(actorUserDoc._id));
+  // Only the actor's manager (team manager)
+  if (actorUserDoc?.manager) {
+    ids.add(String(actorUserDoc.manager));
+  }
 
   return Array.from(ids).map((s) => s);
 }
