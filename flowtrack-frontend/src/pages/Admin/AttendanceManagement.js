@@ -3,6 +3,25 @@ import API from '../../api/axios';
 import DataTable from '../../components/Common/DataTable';
 import { toast } from 'react-toastify';
 
+const summarizeSelfieChecks = (row) => {
+  const checks = Array.isArray(row?.selfieChecks) ? row.selfieChecks : [];
+  if (!checks.length) return '—';
+
+  const counts = checks.reduce(
+    (acc, c) => {
+      const s = c?.status;
+      if (s === 'verified') acc.verified += 1;
+      else if (s === 'failed') acc.failed += 1;
+      else if (s === 'missed') acc.missed += 1;
+      else if (s === 'pending') acc.pending += 1;
+      return acc;
+    },
+    { verified: 0, failed: 0, missed: 0, pending: 0 }
+  );
+
+  return `V:${counts.verified} F:${counts.failed} M:${counts.missed} P:${counts.pending}`;
+};
+
 const AttendanceManagement = () => {
   const [attendance, setAttendance] = useState([]);
   const [startDate, setStartDate] = useState('');
@@ -59,10 +78,14 @@ const AttendanceManagement = () => {
     { header: 'Check Out', render: (row) => formatTime(row.checkOut) },
     { header: 'Total Hours', render: (row) => (row.totalHours ? `${row.totalHours}h` : '--') },
 
-    // ✅ Overtime details (added)
+    // Overtime details
     { header: 'OT In', render: (row) => formatTime(row.overtimeCheckIn) },
     { header: 'OT Out', render: (row) => formatTime(row.overtimeCheckOut) },
     { header: 'OT Hours', render: (row) => (row.overtimeHours ? `${row.overtimeHours}h` : '--') },
+
+    // NEW: Selfie verification summary + auto checkout reason
+    { header: 'Selfie Checks', render: (row) => summarizeSelfieChecks(row) },
+    { header: 'Auto Checkout Reason', render: (row) => row.autoCheckoutReason || '—' },
 
     {
       header: 'Status',
@@ -80,7 +103,15 @@ const AttendanceManagement = () => {
         <h2>Attendance Management</h2>
       </div>
 
-      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div
+        style={{
+          marginBottom: '20px',
+          display: 'flex',
+          gap: '10px',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+        }}
+      >
         <input
           type="date"
           value={startDate}
@@ -100,11 +131,12 @@ const AttendanceManagement = () => {
           style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
         >
           <option value="all">All Roles</option>
-          {/* <option value="admin">Admin</option> */}
           <option value="manager">Manager</option>
           <option value="employee">Employee</option>
         </select>
-        <button onClick={handleFilter} className="add-btn" style={{ padding: '8px 16px' }}>Filter</button>
+        <button onClick={handleFilter} className="add-btn" style={{ padding: '8px 16px' }}>
+          Filter
+        </button>
       </div>
 
       <DataTable

@@ -12,6 +12,25 @@ const isAfter6PM = () => {
   return h > 18 || (h === 18 && m >= 0);
 };
 
+const summarizeSelfieChecks = (row) => {
+  const checks = Array.isArray(row?.selfieChecks) ? row.selfieChecks : [];
+  if (!checks.length) return '—';
+
+  const counts = checks.reduce(
+    (acc, c) => {
+      const s = c?.status;
+      if (s === 'verified') acc.verified += 1;
+      else if (s === 'failed') acc.failed += 1;
+      else if (s === 'missed') acc.missed += 1;
+      else if (s === 'pending') acc.pending += 1;
+      return acc;
+    },
+    { verified: 0, failed: 0, missed: 0, pending: 0 }
+  );
+
+  return `V:${counts.verified} F:${counts.failed} M:${counts.missed} P:${counts.pending}`;
+};
+
 const ManagerAttendance = () => {
   const [attendance, setAttendance] = useState([]);
   const [todayStatus, setTodayStatus] = useState(null);
@@ -108,7 +127,6 @@ const ManagerAttendance = () => {
   const handleCheckIn = () => submitFaceAttendance('face-check-in');
   const handleCheckOut = () => submitFaceAttendance('face-check-out');
 
-  // ---- OVERTIME ----
   const overtimeCheckIn = async () => {
     setOtLoading(true);
     try {
@@ -151,10 +169,13 @@ const ManagerAttendance = () => {
     { header: 'Check Out', render: (row) => formatTime(row.checkOut) },
     { header: 'Total Hours', render: (row) => (row.totalHours ? `${row.totalHours}h` : '--') },
 
-    // Overtime columns
     { header: 'OT In', render: (row) => formatTime(row.overtimeCheckIn) },
     { header: 'OT Out', render: (row) => formatTime(row.overtimeCheckOut) },
     { header: 'OT Hours', render: (row) => (row.overtimeHours ? `${row.overtimeHours}h` : '--') },
+
+    // NEW optional columns
+    { header: 'Selfie Checks', render: (row) => summarizeSelfieChecks(row) },
+    { header: 'Auto Checkout Reason', render: (row) => row.autoCheckoutReason || '—' },
 
     {
       header: 'Status',
@@ -170,7 +191,6 @@ const ManagerAttendance = () => {
     <div>
       <div className="page-header"><h2>My Attendance</h2></div>
 
-      {/* Face Camera */}
       <div className="camera-card">
         <div className="camera-actions">
           {!cameraOn ? (
@@ -194,7 +214,6 @@ const ManagerAttendance = () => {
         </div>
       </div>
 
-      {/* Today's Status */}
       <div className="today-status">
         <div className="today-status-item">
           <div className="label">Today's Date</div>
@@ -227,7 +246,6 @@ const ManagerAttendance = () => {
         </div>
       </div>
 
-      {/* Action Buttons */}
       <div className="attendance-actions">
         <button className="attendance-btn check-in" onClick={handleCheckIn} disabled={hasCheckedIn}>
           <FiLogIn /> {hasCheckedIn ? 'Already Checked In' : 'Check In'}
@@ -237,7 +255,6 @@ const ManagerAttendance = () => {
         </button>
       </div>
 
-      {/* Overtime Buttons (after 6 PM and after normal checkout) */}
       {showOvertimeButtons && (
         <div className="attendance-actions overtime-actions">
           <button
@@ -257,7 +274,6 @@ const ManagerAttendance = () => {
         </div>
       )}
 
-      {/* Attendance History */}
       <DataTable title={`Attendance History (${attendance.length})`} columns={columns} data={attendance} />
     </div>
   );

@@ -4,6 +4,7 @@ import DataTable from '../../components/Common/DataTable';
 import { toast } from 'react-toastify';
 import { FiLogIn, FiLogOut, FiCamera, FiCheckCircle } from 'react-icons/fi';
 import './MyAttendance.css';
+import SelfieVerificationModal from '../../components/Common/SelfieVerificationModal';
 
 const isAfter6PM = () => {
   const d = new Date();
@@ -22,15 +23,39 @@ const MyAttendance = () => {
 
   const [otLoading, setOtLoading] = useState(false);
 
+  // Random selfie verification state
+  const [svOpen, setSvOpen] = useState(false);
+  const [svCheck, setSvCheck] = useState(null);
+
+  const selfiePollRef = useRef(null);
+  const missedPollRef = useRef(null);
+
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
 
   useEffect(() => {
     fetchData();
-    return () => stopCamera();
+    return () => {
+      stopCamera();
+      stopSelfiePolling();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const hasCheckedIn = !!todayStatus?.checkIn;
+    const hasCheckedOut = !!todayStatus?.checkOut;
+
+    if (hasCheckedIn && !hasCheckedOut) {
+      startSelfiePolling();
+    } else {
+      stopSelfiePolling();
+      setSvOpen(false);
+      setSvCheck(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todayStatus?.checkIn, todayStatus?.checkOut]);
 
   const fetchData = async () => {
     try {
@@ -42,6 +67,43 @@ const MyAttendance = () => {
       setTodayStatus(todayRes.data);
     } catch (err) {
       toast.error('Failed to fetch attendance');
+    }
+  };
+
+  const startSelfiePolling = () => {
+    if (selfiePollRef.current || missedPollRef.current) return;
+
+    selfiePollRef.current = setInterval(async () => {
+      try {
+        const res = await API.get('/attendance/selfie-check');
+        if (res.data?.required && res.data?.check?._id) {
+          setSvCheck(res.data.check);
+          setSvOpen(true);
+        }
+      } catch (e) {}
+    }, 30000);
+
+    missedPollRef.current = setInterval(async () => {
+      try {
+        const res = await API.get('/attendance/selfie-check/missed');
+        if (res.data?.missed) {
+          toast.error(res.data?.message || 'You missed selfie verification. You were checked out.');
+          setSvOpen(false);
+          setSvCheck(null);
+          fetchData();
+        }
+      } catch (e) {}
+    }, 30000);
+  };
+
+  const stopSelfiePolling = () => {
+    if (selfiePollRef.current) {
+      clearInterval(selfiePollRef.current);
+      selfiePollRef.current = null;
+    }
+    if (missedPollRef.current) {
+      clearInterval(missedPollRef.current);
+      missedPollRef.current = null;
     }
   };
 
@@ -108,7 +170,6 @@ const MyAttendance = () => {
   const handleCheckIn = () => submitFaceAttendance('face-check-in');
   const handleCheckOut = () => submitFaceAttendance('face-check-out');
 
-  // ---- OVERTIME ----
   const overtimeCheckIn = async () => {
     setOtLoading(true);
     try {
@@ -142,7 +203,6 @@ const MyAttendance = () => {
   const hasOtIn = !!todayStatus?.overtimeCheckIn;
   const hasOtOut = !!todayStatus?.overtimeCheckOut;
 
-  // show overtime only after 6 PM and after normal checkout (manual or auto)
   const showOvertimeButtons = isAfter6PM() && hasCheckedOut;
 
   const columns = [
@@ -151,7 +211,6 @@ const MyAttendance = () => {
     { header: 'Check Out', render: (row) => formatTime(row.checkOut) },
     { header: 'Total Hours', render: (row) => (row.totalHours ? `${row.totalHours}h` : '--') },
 
-    // Overtime columns
     { header: 'OT In', render: (row) => formatTime(row.overtimeCheckIn) },
     { header: 'OT Out', render: (row) => formatTime(row.overtimeCheckOut) },
     { header: 'OT Hours', render: (row) => (row.overtimeHours ? `${row.overtimeHours}h` : '--') },
@@ -168,9 +227,23 @@ const MyAttendance = () => {
 
   return (
     <div>
+      <SelfieVerificationModal
+        open={svOpen}
+        check={svCheck}
+        onVerified={() => {
+          setSvOpen(false);
+          setSvCheck(null);
+          fetchData();
+        }}
+        onFailedOrMissed={() => {
+          setSvOpen(false);
+          setSvCheck(null);
+          fetchData();
+        }}
+      />
+
       <div className="page-header"><h2>My Attendance</h2></div>
 
-      {/* Face Camera */}
       <div className="camera-card">
         <div className="camera-actions">
           {!cameraOn ? (
@@ -194,7 +267,6 @@ const MyAttendance = () => {
         </div>
       </div>
 
-      {/* Today's Status */}
       <div className="today-status">
         <div className="today-status-item">
           <div className="label">Today's Date</div>
@@ -215,7 +287,6 @@ const MyAttendance = () => {
           </div>
         </div>
 
-        {/* OT status */}
         <div className="today-status-item">
           <div className="label">Overtime</div>
           <div className="value">
@@ -228,7 +299,6 @@ const MyAttendance = () => {
         </div>
       </div>
 
-      {/* Action Buttons */}
       <div className="attendance-actions">
         <button className="attendance-btn check-in" onClick={handleCheckIn} disabled={hasCheckedIn}>
           <FiLogIn /> {hasCheckedIn ? 'Already Checked In' : 'Check In'}
@@ -238,7 +308,6 @@ const MyAttendance = () => {
         </button>
       </div>
 
-      {/* Overtime Buttons */}
       {showOvertimeButtons && (
         <div className="attendance-actions overtime-actions">
           <button
@@ -259,7 +328,6 @@ const MyAttendance = () => {
         </div>
       )}
 
-      {/* Attendance History */}
       <DataTable title={`Attendance History (${attendance.length})`} columns={columns} data={attendance} />
     </div>
   );

@@ -1,5 +1,23 @@
 const mongoose = require('mongoose');
 
+const selfieCheckSchema = new mongoose.Schema(
+  {
+    scheduledAt: { type: Date, required: true },
+    notifiedAt: { type: Date, default: null },
+    responseDeadline: { type: Date, required: true },
+
+    selfieImage: { type: String, default: '' },
+    status: {
+      type: String,
+      enum: ['pending', 'verified', 'failed', 'missed'],
+      default: 'pending',
+    },
+    verifiedAt: { type: Date, default: null },
+    reason: { type: String, default: '' },
+  },
+  { _id: true }
+);
+
 const attendanceSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -20,6 +38,10 @@ const attendanceSchema = new mongoose.Schema(
     overtimeCheckIn: { type: Date, default: null },
     overtimeCheckOut: { type: Date, default: null },
     overtimeHours: { type: Number, default: 0 },
+
+    // ---- RANDOM SELFIE VERIFICATION ----
+    selfieChecks: { type: [selfieCheckSchema], default: [] },
+    autoCheckoutReason: { type: String, default: '' },
   },
   { timestamps: true }
 );

@@ -1,0 +1,79 @@
+.svm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.svm-modal {
+  width: min(720px, 92vw);
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.svm-warning {
+  margin-top: 6px;
+  color: #b00020;
+  font-weight: 600;
+}
+
+.svm-deadline {
+  margin-top: 6px;
+  color: #444;
+}
+
+.svm-camera {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.svm-video {
+  width: 100%;
+  border-radius: 10px;
+  background: #111;
+  max-height: 360px;
+  object-fit: cover;
+}
+
+.svm-canvas {
+  display: none;
+}
+
+.svm-preview {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #eee;
+  max-height: 360px;
+  object-fit: cover;
+}
+
+.svm-actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.svm-btn {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  background: #f7f7f7;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.svm-btn.primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+
+.svm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
