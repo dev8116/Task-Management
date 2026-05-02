@@ -4,7 +4,7 @@ const API = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
 });
 
-// ---- Global hooks (set from App) ----
+// Hooks installed once from App
 let ajaxStart = null;
 let ajaxStop = null;
 let onUnauthorized = null;
@@ -15,10 +15,10 @@ export const configureAjaxHooks = ({ start, stop, unauthorized }) => {
   onUnauthorized = unauthorized;
 };
 
-// Attach token from sessionStorage (tab-scoped) or localStorage (legacy)
 API.interceptors.request.use(
   (config) => {
-    if (ajaxStart) ajaxStart();
+    const isBackground = !!config?.meta?.background;
+    if (!isBackground && ajaxStart) ajaxStart();
 
     try {
       const rawSession = sessionStorage.getItem('flowtrack_user');
@@ -39,6 +39,7 @@ API.interceptors.request.use(
     return config;
   },
   (err) => {
+    // request failed before sending
     if (ajaxStop) ajaxStop();
     return Promise.reject(err);
   }
@@ -46,17 +47,16 @@ API.interceptors.request.use(
 
 API.interceptors.response.use(
   (res) => {
-    if (ajaxStop) ajaxStop();
+    const isBackground = !!res?.config?.meta?.background;
+    if (!isBackground && ajaxStop) ajaxStop();
     return res;
   },
   (err) => {
-    if (ajaxStop) ajaxStop();
+    const isBackground = !!err?.config?.meta?.background;
+    if (!isBackground && ajaxStop) ajaxStop();
 
-    const status = err?.response?.status;
-    if (status === 401 && onUnauthorized) {
-      try {
-        onUnauthorized(err);
-      } catch (_) {}
+    if (err?.response?.status === 401 && onUnauthorized) {
+      try { onUnauthorized(err); } catch (_) {}
     }
 
     return Promise.reject(err);

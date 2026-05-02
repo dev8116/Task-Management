@@ -23,15 +23,16 @@ const MyAttendance = () => {
 
   const [otLoading, setOtLoading] = useState(false);
 
+  // ✅ Local loading for face check-in/out (don’t block whole site)
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
+
   // Selfie verification modal state
   const [svOpen, setSvOpen] = useState(false);
   const [svCheck, setSvCheck] = useState(null);
 
-  // Poll refs
   const selfiePollRef = useRef(null);
   const missedPollRef = useRef(null);
-
-  // Prevent reopening same check repeatedly
   const lastShownCheckIdRef = useRef(null);
 
   const videoRef = useRef(null);
@@ -76,24 +77,18 @@ const MyAttendance = () => {
   };
 
   const startSelfiePolling = () => {
-    // already running
     if (selfiePollRef.current || missedPollRef.current) return;
 
-    // ✅ For 2 checks in first 10 minutes, polling faster helps UX
-    const pollMs = 10000; // 10 seconds
+    const pollMs = 10000;
 
     selfiePollRef.current = setInterval(async () => {
       try {
-        const res = await API.get('/attendance/selfie-check');
+        const res = await API.get('/attendance/selfie-check', { meta: { background: true } });
         const required = !!res.data?.required;
         const check = res.data?.check;
 
         if (!required || !check?._id) return;
-
-        // If modal already open for same check, do nothing
         if (svOpen && svCheck?._id === check._id) return;
-
-        // If we already showed this check earlier (user closed it), avoid spam
         if (lastShownCheckIdRef.current === check._id && !svOpen) return;
 
         lastShownCheckIdRef.current = check._id;
@@ -101,14 +96,12 @@ const MyAttendance = () => {
         setSvOpen(true);
 
         toast.warn('Selfie verification required now!', { autoClose: 3500 });
-      } catch (e) {
-        // silent: avoid spam errors
-      }
+      } catch (e) {}
     }, pollMs);
 
     missedPollRef.current = setInterval(async () => {
       try {
-        const res = await API.get('/attendance/selfie-check/missed');
+        const res = await API.get('/attendance/selfie-check/missed', { meta: { background: true } });
         if (res.data?.missed) {
           toast.error(res.data?.message || 'You missed selfie verification. You were checked out.');
           setSvOpen(false);
@@ -116,9 +109,7 @@ const MyAttendance = () => {
           lastShownCheckIdRef.current = null;
           fetchData();
         }
-      } catch (e) {
-        // silent
-      }
+      } catch (e) {}
     }, pollMs);
   };
 
@@ -178,18 +169,27 @@ const MyAttendance = () => {
       return;
     }
 
+    const isIn = endpoint.includes('check-in');
+    if (isIn) setCheckingIn(true);
+    else setCheckingOut(true);
+
     try {
       const formData = new FormData();
       formData.append('selfie', selfieBlob, 'selfie.jpg');
 
+      // ✅ run as background (no global loader)
       await API.post(`/attendance/${endpoint}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        meta: { background: true },
       });
 
-      toast.success(endpoint.includes('check-in') ? 'Checked in successfully!' : 'Checked out successfully!');
+      toast.success(isIn ? 'Checked in successfully!' : 'Checked out successfully!');
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Face verification failed');
+    } finally {
+      if (isIn) setCheckingIn(false);
+      else setCheckingOut(false);
     }
   };
 
@@ -270,7 +270,6 @@ const MyAttendance = () => {
 
       <div className="page-header"><h2>My Attendance</h2></div>
 
-      {/* Face Camera */}
       <div className="camera-card">
         <div className="camera-actions">
           {!cameraOn ? (
@@ -294,50 +293,24 @@ const MyAttendance = () => {
         </div>
       </div>
 
-      {/* Today's Status */}
-      <div className="today-status">
-        <div className="today-status-item">
-          <div className="label">Today's Date</div>
-          <div className="value">{new Date().toLocaleDateString()}</div>
-        </div>
-        <div className="today-status-item">
-          <div className="label">Check In</div>
-          <div className="value">{hasCheckedIn ? formatTime(todayStatus.checkIn) : 'Not yet'}</div>
-        </div>
-        <div className="today-status-item">
-          <div className="label">Check Out</div>
-          <div className="value">{hasCheckedOut ? formatTime(todayStatus.checkOut) : 'Not yet'}</div>
-        </div>
-        <div className="today-status-item">
-          <div className="label">Status</div>
-          <div className="value">
-            {hasCheckedOut ? '✅ Completed' : hasCheckedIn ? '🟢 Working' : '⏳ Not Started'}
-          </div>
-        </div>
-
-        <div className="today-status-item">
-          <div className="label">Overtime</div>
-          <div className="value">
-            {hasOtOut
-              ? `✅ Completed (${todayStatus?.overtimeHours || 0}h)`
-              : hasOtIn
-              ? '🟠 In Overtime'
-              : '—'}
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
       <div className="attendance-actions">
-        <button className="attendance-btn check-in" onClick={handleCheckIn} disabled={hasCheckedIn}>
-          <FiLogIn /> {hasCheckedIn ? 'Already Checked In' : 'Check In'}
+        <button
+          className="attendance-btn check-in"
+          onClick={handleCheckIn}
+          disabled={hasCheckedIn || checkingIn || checkingOut}
+        >
+          <FiLogIn /> {checkingIn ? 'Checking In...' : hasCheckedIn ? 'Already Checked In' : 'Check In'}
         </button>
-        <button className="attendance-btn check-out" onClick={handleCheckOut} disabled={!hasCheckedIn || hasCheckedOut}>
-          <FiLogOut /> {hasCheckedOut ? 'Already Checked Out' : 'Check Out'}
+
+        <button
+          className="attendance-btn check-out"
+          onClick={handleCheckOut}
+          disabled={!hasCheckedIn || hasCheckedOut || checkingIn || checkingOut}
+        >
+          <FiLogOut /> {checkingOut ? 'Checking Out...' : hasCheckedOut ? 'Already Checked Out' : 'Check Out'}
         </button>
       </div>
 
-      {/* Overtime Buttons */}
       {showOvertimeButtons && (
         <div className="attendance-actions overtime-actions">
           <button className="attendance-btn overtime-in" onClick={overtimeCheckIn} disabled={otLoading || hasOtIn}>
@@ -350,7 +323,6 @@ const MyAttendance = () => {
         </div>
       )}
 
-      {/* Attendance History */}
       <DataTable title={`Attendance History (${attendance.length})`} columns={columns} data={attendance} />
     </div>
   );
