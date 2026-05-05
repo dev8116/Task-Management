@@ -6,17 +6,15 @@ const { verifyEmployeeFace } = require("../utils/selfieVerification");
 
 // ----- TIME RULE HELPERS -----
 const toMinutes = (d) => d.getHours() * 60 + d.getMinutes();
-const CHECKIN_START = 10 * 60; // 10:00
-const CHECKIN_END = 11 * 60; // 11:00
+const CHECKIN_START = 10 * 60; // 10:00 AM
+const CHECKIN_END = 11 * 60;   // 11:00 AM
 const AUTO_CHECKOUT_TIME = 18 * 60; // 18:00 (6PM)
 
 const isEmployeeOrManager = (role) => role === "employee" || role === "manager";
 
-// ✅ NEW RULE: 2 selfie checks within first 10 minutes after check-in
-const SELFIE_CHECKS_FIRST_10_MIN_OFFSETS = [5, 10]; // minutes after check-in
-const SELFIE_RESPONSE_WINDOW_MINUTES = 2; // user must respond within 2 minutes of scheduled time
-
-const minutesBetween = (a, b) => Math.floor((b.getTime() - a.getTime()) / 60000);
+// ✅ 2 selfie checks within first 10 minutes after check-in (employee only)
+const SELFIE_CHECKS_FIRST_10_MIN_OFFSETS = [5, 10];
+const SELFIE_RESPONSE_WINDOW_MINUTES = 2;
 
 async function safeActivityLog({
   userId,
@@ -77,7 +75,7 @@ async function autoCheckoutAttendance({ attendance, reason, actorUser }) {
   return attendance;
 }
 
-// Keep compatibility for existing face-check-in/out endpoints
+// Face verification helper (used for face-check-in/out endpoints)
 const verifyFaceForCheckInOut = async (req) => {
   if (!req.file?.buffer) return { ok: false, message: "Selfie image is required" };
 
@@ -90,7 +88,6 @@ const verifyFaceForCheckInOut = async (req) => {
   return { ok: true };
 };
 
-// ✅ Build 2 checks within first 10 minutes
 function buildSelfieChecksFirst10Minutes({ checkInTime }) {
   return SELFIE_CHECKS_FIRST_10_MIN_OFFSETS.map((offsetMin) => {
     const scheduledAt = new Date(checkInTime.getTime() + offsetMin * 60 * 1000);
@@ -108,7 +105,8 @@ function buildSelfieChecksFirst10Minutes({ checkInTime }) {
   });
 }
 
-// @desc    Mark check-in (10–11 AM only for employee/manager)
+// @desc Mark check-in
+// ✅ NEW RULE: Employee/Manager can check in AFTER 11 AM, but status becomes "Late"
 exports.checkIn = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
@@ -121,23 +119,29 @@ exports.checkIn = async (req, res) => {
     const now = new Date();
     const mins = toMinutes(now);
 
+    // ✅ allow employee/manager check-in only from 10:00 AM onwards
     if (isEmployeeOrManager(req.user.role)) {
-      if (mins < CHECKIN_START || mins > CHECKIN_END) {
+      if (mins < CHECKIN_START) {
         return res.status(400).json({
-          message: "Check-in allowed only between 10:00 AM and 11:00 AM",
+          message: "Check-in allowed only after 10:00 AM",
         });
       }
+      // NOTE: no upper bound anymore
     }
 
+    // ✅ Late if after 11:00 AM
     const status = mins > CHECKIN_END ? "Late" : "Present";
 
     const attendance = await Attendance.findOneAndUpdate(
       { user: req.user._id, date: today },
-      { $setOnInsert: { user: req.user._id, date: today }, $set: { checkIn: now, status } },
+      {
+        $setOnInsert: { user: req.user._id, date: today },
+        $set: { checkIn: now, status },
+      },
       { upsert: true, new: true }
     );
 
-    // ✅ Apply only for Employee role: schedule 2 checks in first 10 minutes
+    // Employee selfie checks
     if (req.user.role === "employee") {
       attendance.selfieChecks = buildSelfieChecksFirst10Minutes({ checkInTime: now });
       attendance.autoCheckoutReason = "";
@@ -151,7 +155,7 @@ exports.checkIn = async (req, res) => {
       actorRole: req.user.role,
       action: "CHECK_IN",
       title: "Check-in",
-      description: `${actorDoc.name || "User"} checked in at ${now.toLocaleTimeString()}`,
+      description: `${actorDoc.name || "User"} checked in at ${now.toLocaleTimeString()} (${status})`,
       entity: "Attendance",
       entityId: attendance._id,
       recipients,
@@ -163,7 +167,7 @@ exports.checkIn = async (req, res) => {
   }
 };
 
-// @desc    Mark check-out
+// @desc Mark check-out
 exports.checkOut = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
@@ -199,7 +203,7 @@ exports.checkOut = async (req, res) => {
   }
 };
 
-// @desc    Face check-in
+// @desc Face check-in
 exports.faceCheckIn = async (req, res) => {
   try {
     const verification = await verifyFaceForCheckInOut(req);
@@ -210,7 +214,7 @@ exports.faceCheckIn = async (req, res) => {
   }
 };
 
-// @desc    Face check-out
+// @desc Face check-out
 exports.faceCheckOut = async (req, res) => {
   try {
     const verification = await verifyFaceForCheckInOut(req);
@@ -221,7 +225,7 @@ exports.faceCheckOut = async (req, res) => {
   }
 };
 
-// @desc    Overtime check-in (after 6 PM only)
+// @desc Overtime check-in (after 6 PM only)
 exports.overtimeCheckIn = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
@@ -255,7 +259,7 @@ exports.overtimeCheckIn = async (req, res) => {
   }
 };
 
-// @desc    Overtime check-out (manual)
+// @desc Overtime check-out
 exports.overtimeCheckOut = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
@@ -280,7 +284,7 @@ exports.overtimeCheckOut = async (req, res) => {
   }
 };
 
-// @desc    Get attendance records (scoped)
+// @desc Get attendance
 exports.getAttendance = async (req, res) => {
   try {
     const { userId, startDate, endDate, status } = req.query;
@@ -323,7 +327,7 @@ exports.getAttendance = async (req, res) => {
   }
 };
 
-// @desc    Get today's attendance status
+// @desc Get today attendance
 exports.getTodayAttendance = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];

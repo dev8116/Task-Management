@@ -1,18 +1,27 @@
 // flowtrack-backend/controllers/aiController.js
 
-const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const callGemini = async (prompt, { retries = 2 } = {}) => {
-  const apiKey = process.env.GEMINI_API_KEY;
+  let apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("Missing GEMINI_API_KEY in environment");
+
+  apiKey = String(apiKey).trim();
+
+  // common .env mistake: key + comment on same line
+  if (apiKey.includes("#")) {
+    throw new Error(
+      "GEMINI_API_KEY contains '#'. Fix your .env: keep only the key on that line (no comments)."
+    );
+  }
 
   let lastText = "";
 
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const response = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+    const response = await fetch(`${GEMINI_URL}?key=${encodeURIComponent(apiKey)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -28,7 +37,6 @@ const callGemini = async (prompt, { retries = 2 } = {}) => {
 
     lastText = await response.text();
 
-    // retry temporary errors
     if ((response.status === 503 || response.status === 429) && attempt < retries) {
       await sleep(500 * Math.pow(2, attempt));
       continue;
@@ -39,6 +47,12 @@ const callGemini = async (prompt, { retries = 2 } = {}) => {
     }
     if (response.status === 429) {
       throw new Error("AI rate limit reached (Gemini 429). Please try again later.");
+    }
+
+    if (response.status === 400 && lastText.includes("API key not valid")) {
+      throw new Error(
+        "Gemini error (400): API key not valid. Your GEMINI_API_KEY is wrong/disabled/restricted. Fix .env and restart backend."
+      );
     }
 
     throw new Error(`Gemini error (${response.status}): ${lastText}`);
