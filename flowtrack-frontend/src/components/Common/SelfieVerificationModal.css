@@ -1,33 +1,54 @@
 .svm-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.65);
+  background: rgba(0, 0, 0, 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  padding: 14px; /* allow spacing on small screens */
 }
 
+/* Modal is scrollable inside so buttons remain reachable */
 .svm-modal {
-  width: min(720px, 92vw);
+  width: min(720px, 96vw);
   background: #fff;
   border-radius: 12px;
-  padding: 18px;
+  padding: 16px;
+
+  /* ✅ key for mobile: do not overflow screen */
+  max-height: min(92vh, 820px);
+  overflow: auto;
+
+  /* smoother scrolling */
+  -webkit-overflow-scrolling: touch;
+
+  /* layout so actions can be sticky */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.svm-modal h3 {
+  margin: 0;
 }
 
 .svm-warning {
-  margin-top: 6px;
+  margin: 0;
   color: #b00020;
   font-weight: 600;
+  line-height: 1.35;
 }
 
 .svm-deadline {
-  margin-top: 6px;
+  margin: 0;
   color: #444;
+  font-size: 14px;
 }
 
+/* Camera area */
 .svm-camera {
-  margin-top: 14px;
+  margin-top: 6px;
   display: grid;
   gap: 10px;
 }
@@ -36,7 +57,10 @@
   width: 100%;
   border-radius: 10px;
   background: #111;
-  max-height: 360px;
+
+  /* ✅ responsive height */
+  max-height: 42vh;
+  min-height: 180px;
   object-fit: cover;
 }
 
@@ -48,15 +72,26 @@
   width: 100%;
   border-radius: 10px;
   border: 1px solid #eee;
-  max-height: 360px;
+  max-height: 42vh;
+  min-height: 180px;
   object-fit: cover;
 }
 
+/* ✅ Sticky actions so user always sees verify/skip buttons */
 .svm-actions {
-  margin-top: 14px;
+  margin-top: auto;
+  position: sticky;
+  bottom: 0;
+
+  background: #fff;
+  padding-top: 12px;
+  padding-bottom: 2px;
+
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+  flex-wrap: wrap; /* ✅ wrap on small screens */
+  border-top: 1px solid #f1f1f1;
 }
 
 .svm-btn {
@@ -65,6 +100,7 @@
   background: #f7f7f7;
   border-radius: 8px;
   cursor: pointer;
+  font-weight: 600;
 }
 
 .svm-btn.primary {
@@ -73,7 +109,40 @@
   color: white;
 }
 
+.svm-btn.danger {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
 .svm-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* ✅ Mobile adjustments */
+@media (max-width: 480px) {
+  .svm-modal {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .svm-actions {
+    justify-content: stretch;
+  }
+
+  .svm-btn {
+    flex: 1;
+    min-width: 140px;
+  }
+}
+
+/* ✅ Small height screens (common phone landscape) */
+@media (max-height: 650px) {
+  .svm-video,
+  .svm-preview {
+    max-height: 32vh;
+    min-height: 140px;
+  }
 }

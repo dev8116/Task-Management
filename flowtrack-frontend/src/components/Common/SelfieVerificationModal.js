@@ -86,12 +86,31 @@ const SelfieVerificationModal = ({ open, check, onVerified, onFailedOrMissed }) 
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      toast.success('Selfie verification successful');
+      toast.success(res.data?.message || 'Selfie verification successful');
       stopCamera();
       onVerified?.(res.data?.attendance);
     } catch (err) {
       const msg = err.response?.data?.message || 'Selfie verification failed';
       toast.error(msg);
+      stopCamera();
+      onFailedOrMissed?.(err.response?.data?.attendance || null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const skip = async () => {
+    setLoading(true);
+    try {
+      const res = await API.post(`/attendance/selfie-check/${check._id}/skip`, null, {
+        meta: { background: true },
+      });
+
+      toast.warn(res.data?.message || 'Skipped selfie verification');
+      stopCamera();
+      onFailedOrMissed?.(res.data?.attendance || null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Skip failed');
       stopCamera();
       onFailedOrMissed?.(err.response?.data?.attendance || null);
     } finally {
@@ -106,7 +125,7 @@ const SelfieVerificationModal = ({ open, check, onVerified, onFailedOrMissed }) 
       <div className="svm-modal" role="dialog" aria-modal="true">
         <h3>Selfie Verification Required</h3>
         <p className="svm-warning">
-          Please take selfie within 2 minutes, otherwise you will be automatically checked out.
+          Please take selfie within 2 minutes. You can miss 1 time. On the 2nd miss you will be automatically checked out.
         </p>
         <p className="svm-deadline">Deadline: {deadlineText}</p>
 
@@ -122,6 +141,11 @@ const SelfieVerificationModal = ({ open, check, onVerified, onFailedOrMissed }) 
           </button>
           <button className="svm-btn primary" onClick={submit} disabled={loading || !selfieBlob}>
             {loading ? 'Verifying...' : 'Submit & Verify'}
+          </button>
+
+          {/* ✅ Skip button (counts as miss) */}
+          <button className="svm-btn danger" onClick={skip} disabled={loading}>
+            Skip
           </button>
         </div>
 

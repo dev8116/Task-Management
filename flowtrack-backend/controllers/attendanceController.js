@@ -7,14 +7,17 @@ const { verifyEmployeeFace } = require("../utils/selfieVerification");
 // ----- TIME RULE HELPERS -----
 const toMinutes = (d) => d.getHours() * 60 + d.getMinutes();
 const CHECKIN_START = 10 * 60; // 10:00 AM
-const CHECKIN_END = 11 * 60;   // 11:00 AM
+const CHECKIN_END = 11 * 60; // 11:00 AM
 const AUTO_CHECKOUT_TIME = 18 * 60; // 18:00 (6PM)
 
 const isEmployeeOrManager = (role) => role === "employee" || role === "manager";
 
-// ✅ 2 selfie checks within first 10 minutes after check-in (employee only)
-const SELFIE_CHECKS_FIRST_10_MIN_OFFSETS = [5, 10];
+// ✅ Random selfie checks between 10AM-6PM (employee only)
+const SELFIE_RANDOM_CHECK_COUNT = 5;
 const SELFIE_RESPONSE_WINDOW_MINUTES = 2;
+
+// ✅ Auto check-out on 2nd miss => allowed misses = 1
+const MAX_ALLOWED_SELFIE_MISSES = 1;
 
 async function safeActivityLog({
   userId,
@@ -88,12 +91,54 @@ const verifyFaceForCheckInOut = async (req) => {
   return { ok: true };
 };
 
-function buildSelfieChecksFirst10Minutes({ checkInTime }) {
-  return SELFIE_CHECKS_FIRST_10_MIN_OFFSETS.map((offsetMin) => {
-    const scheduledAt = new Date(checkInTime.getTime() + offsetMin * 60 * 1000);
+function dayKeyISO(d) {
+  return new Date(d).toISOString().split("T")[0];
+}
+
+function setTimeOnDate(baseDate, hours, minutes, seconds = 0, ms = 0) {
+  const d = new Date(baseDate);
+  d.setHours(hours, minutes, seconds, ms);
+  return d;
+}
+
+function randomInt(minInclusive, maxInclusive) {
+  return Math.floor(Math.random() * (maxInclusive - minInclusive + 1)) + minInclusive;
+}
+
+// Create 5 random scheduledAt times between 10:00 and 18:00.
+// If check-in happens after 10:00, start window from check-in time (so no past schedule).
+function buildRandomSelfieChecks({ checkInTime }) {
+  const day = checkInTime;
+
+  const windowStart = setTimeOnDate(day, 10, 0, 0, 0);
+  const windowEnd = setTimeOnDate(day, 18, 0, 0, 0);
+
+  // if employee checks in after 10AM, we start from check-in time
+  const effectiveStart = checkInTime > windowStart ? new Date(checkInTime) : windowStart;
+
+  // if check in is after 6PM, no checks
+  if (effectiveStart >= windowEnd) return [];
+
+  const startMs = effectiveStart.getTime();
+  const endMs = windowEnd.getTime();
+
+  // generate unique random times (minute precision)
+  const pickedMinutes = new Set();
+  const checks = [];
+
+  // how many minutes available
+  const totalMinutes = Math.floor((endMs - startMs) / (60 * 1000));
+  const target = Math.min(SELFIE_RANDOM_CHECK_COUNT, Math.max(0, totalMinutes)); // safety
+
+  while (checks.length < target) {
+    const offsetMin = randomInt(0, totalMinutes);
+    if (pickedMinutes.has(offsetMin)) continue;
+    pickedMinutes.add(offsetMin);
+
+    const scheduledAt = new Date(startMs + offsetMin * 60 * 1000);
     const responseDeadline = new Date(scheduledAt.getTime() + SELFIE_RESPONSE_WINDOW_MINUTES * 60 * 1000);
 
-    return {
+    checks.push({
       scheduledAt,
       notifiedAt: null,
       responseDeadline,
@@ -101,15 +146,24 @@ function buildSelfieChecksFirst10Minutes({ checkInTime }) {
       status: "pending",
       verifiedAt: null,
       reason: "",
-    };
-  });
+    });
+  }
+
+  // sort by time
+  checks.sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
+  return checks;
+}
+
+function countSelfieMisses(attendance) {
+  const checks = attendance?.selfieChecks || [];
+  return checks.filter((c) => ["missed", "failed", "skipped"].includes(c.status)).length;
 }
 
 // @desc Mark check-in
 // ✅ NEW RULE: Employee/Manager can check in AFTER 11 AM, but status becomes "Late"
 exports.checkIn = async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = dayKeyISO(new Date());
 
     const existing = await Attendance.findOne({ user: req.user._id, date: today });
     if (existing?.checkIn) {
@@ -141,9 +195,9 @@ exports.checkIn = async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // Employee selfie checks
+    // Employee selfie checks (random 5 times between 10AM-6PM)
     if (req.user.role === "employee") {
-      attendance.selfieChecks = buildSelfieChecksFirst10Minutes({ checkInTime: now });
+      attendance.selfieChecks = buildRandomSelfieChecks({ checkInTime: now });
       attendance.autoCheckoutReason = "";
       await attendance.save();
     }
@@ -170,7 +224,7 @@ exports.checkIn = async (req, res) => {
 // @desc Mark check-out
 exports.checkOut = async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = dayKeyISO(new Date());
     const attendance = await Attendance.findOne({ user: req.user._id, date: today });
     if (!attendance) return res.status(400).json({ message: "You have not checked in today" });
     if (attendance.checkOut) return res.status(400).json({ message: "Already checked out for today" });
@@ -228,7 +282,7 @@ exports.faceCheckOut = async (req, res) => {
 // @desc Overtime check-in (after 6 PM only)
 exports.overtimeCheckIn = async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = dayKeyISO(new Date());
     const now = new Date();
     const mins = toMinutes(now);
 
@@ -262,7 +316,7 @@ exports.overtimeCheckIn = async (req, res) => {
 // @desc Overtime check-out
 exports.overtimeCheckOut = async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = dayKeyISO(new Date());
     const now = new Date();
 
     const record = await Attendance.findOne({ user: req.user._id, date: today });
@@ -330,7 +384,7 @@ exports.getAttendance = async (req, res) => {
 // @desc Get today attendance
 exports.getTodayAttendance = async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = dayKeyISO(new Date());
     const record = await Attendance.findOne({ user: req.user._id, date: today })
       .populate("user", "name email department");
     res.json(record || null);
@@ -344,7 +398,7 @@ exports.getSelfieCheckRequirement = async (req, res) => {
   try {
     if (req.user.role !== "employee") return res.json({ required: false });
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = dayKeyISO(new Date());
     const now = new Date();
 
     const attendance = await Attendance.findOne({ user: req.user._id, date: today });
@@ -376,6 +430,36 @@ exports.getSelfieCheckRequirement = async (req, res) => {
   }
 };
 
+// helper: apply miss and maybe auto-checkout
+async function applyMissAndMaybeCheckout({ attendance, check, now, reason, actorUser }) {
+  if (!attendance || attendance.checkOut) return attendance;
+
+  check.status = check.status === "skipped" ? "skipped" : "missed";
+  check.reason = reason || check.reason || "Selfie missed";
+
+  const misses = countSelfieMisses(attendance);
+
+  if (misses > MAX_ALLOWED_SELFIE_MISSES) {
+    await safeActivityLog({
+      userId: actorUser?._id || attendance.user,
+      role: actorUser?.role || "employee",
+      action: "AUTO_CHECK_OUT_MISSED_SELFIE",
+      description: `Auto check-out due to selfie misses (${misses}).`,
+      entityId: attendance._id,
+    });
+
+    await autoCheckoutAttendance({
+      attendance,
+      reason: `Missed selfie verification ${misses} times`,
+      actorUser,
+    });
+  } else {
+    await attendance.save();
+  }
+
+  return attendance;
+}
+
 // POST /api/attendance/selfie-check/:checkId
 exports.submitSelfieCheck = async (req, res) => {
   try {
@@ -384,7 +468,7 @@ exports.submitSelfieCheck = async (req, res) => {
     }
 
     const { checkId } = req.params;
-    const today = new Date().toISOString().split("T")[0];
+    const today = dayKeyISO(new Date());
     const now = new Date();
 
     const attendance = await Attendance.findOne({ user: req.user._id, date: today });
@@ -398,34 +482,23 @@ exports.submitSelfieCheck = async (req, res) => {
       return res.status(400).json({ message: `Selfie check already ${check.status}` });
     }
 
+    // deadline passed => miss (not immediate checkout unless it's 2nd miss)
     if (now > check.responseDeadline) {
-      check.status = "missed";
-      check.reason = "Selfie not submitted before deadline";
-      await attendance.save();
-
-      await safeActivityLog({
-        userId: req.user._id,
-        role: req.user.role,
-        action: "SELFIE_VERIFICATION_MISSED",
-        description: "Selfie verification missed (deadline passed). Auto check-out applied.",
-        entityId: attendance._id,
-      });
-
-      await safeActivityLog({
-        userId: req.user._id,
-        role: req.user.role,
-        action: "AUTO_CHECK_OUT_MISSED_SELFIE",
-        description: "Auto check-out due to missed selfie verification.",
-        entityId: attendance._id,
-      });
-
-      await autoCheckoutAttendance({
+      await applyMissAndMaybeCheckout({
         attendance,
-        reason: "Missed selfie verification (deadline passed)",
+        check,
+        now,
+        reason: "Selfie not submitted before deadline",
         actorUser: req.user,
       });
 
-      return res.status(400).json({ message: "Deadline missed. You were automatically checked out.", attendance });
+      const misses = countSelfieMisses(attendance);
+      const msg =
+        misses > MAX_ALLOWED_SELFIE_MISSES
+          ? "Deadline missed. You were automatically checked out (2nd miss)."
+          : "Deadline missed. This counts as a miss.";
+
+      return res.status(400).json({ message: msg, attendance });
     }
 
     if (!req.file?.buffer) return res.status(400).json({ message: "Selfie image is required" });
@@ -452,6 +525,7 @@ exports.submitSelfieCheck = async (req, res) => {
       return res.json({ message: "Selfie verified", attendance });
     }
 
+    // failed counts as miss for threshold
     check.status = "failed";
     check.reason = verify.reason || "Face match failed";
     await attendance.save();
@@ -464,24 +538,67 @@ exports.submitSelfieCheck = async (req, res) => {
       entityId: attendance._id,
     });
 
-    await safeActivityLog({
-      userId: req.user._id,
-      role: req.user.role,
-      action: "AUTO_CHECK_OUT_FAILED_SELFIE",
-      description: "Auto check-out due to failed selfie verification.",
-      entityId: attendance._id,
-    });
+    const misses = countSelfieMisses(attendance);
+    if (misses > MAX_ALLOWED_SELFIE_MISSES) {
+      await autoCheckoutAttendance({
+        attendance,
+        reason: `Selfie failed and reached miss limit (${misses})`,
+        actorUser: req.user,
+      });
 
-    await autoCheckoutAttendance({
+      return res.status(401).json({
+        message: "Face verification failed. You were automatically checked out (2nd miss).",
+        attendance,
+      });
+    }
+
+    return res.status(401).json({
+      message: "Face verification failed. This counts as a miss.",
       attendance,
-      reason: `Failed selfie verification: ${check.reason}`,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// POST /api/attendance/selfie-check/:checkId/skip
+exports.skipSelfieCheck = async (req, res) => {
+  try {
+    if (req.user.role !== "employee") {
+      return res.status(403).json({ message: "Only employee can skip selfie verification" });
+    }
+
+    const { checkId } = req.params;
+    const today = dayKeyISO(new Date());
+    const now = new Date();
+
+    const attendance = await Attendance.findOne({ user: req.user._id, date: today });
+    if (!attendance?.checkIn || attendance.checkOut) {
+      return res.status(400).json({ message: "Not checked in or already checked out" });
+    }
+
+    const check = attendance.selfieChecks?.id(checkId);
+    if (!check) return res.status(404).json({ message: "Selfie check not found" });
+    if (check.status !== "pending") {
+      return res.status(400).json({ message: `Selfie check already ${check.status}` });
+    }
+
+    check.status = "skipped";
+    await applyMissAndMaybeCheckout({
+      attendance,
+      check,
+      now,
+      reason: "Employee skipped selfie verification",
       actorUser: req.user,
     });
 
-    return res.status(401).json({
-      message: "Face verification failed. You were automatically checked out.",
-      attendance,
-    });
+    const misses = countSelfieMisses(attendance);
+    const msg =
+      misses > MAX_ALLOWED_SELFIE_MISSES
+        ? "You skipped selfie verification and were auto checked out (2nd miss)."
+        : "You skipped selfie verification. This counts as a miss.";
+
+    return res.json({ message: msg, attendance });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -492,42 +609,43 @@ exports.checkMissedSelfieDeadlines = async (req, res) => {
   try {
     if (req.user.role !== "employee") return res.json({ missed: false });
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = dayKeyISO(new Date());
     const now = new Date();
 
     const attendance = await Attendance.findOne({ user: req.user._id, date: today });
     if (!attendance?.checkIn || attendance.checkOut) return res.json({ missed: false });
 
+    // Find first expired pending check and mark it missed
     const missed = attendance.selfieChecks?.find((c) => c.status === "pending" && now > c.responseDeadline);
     if (!missed) return res.json({ missed: false });
 
     missed.status = "missed";
     missed.reason = "Selfie not submitted before deadline";
+
     await attendance.save();
 
-    await safeActivityLog({
-      userId: req.user._id,
-      role: req.user.role,
-      action: "SELFIE_VERIFICATION_MISSED",
-      description: "Selfie verification missed (deadline passed). Auto check-out applied.",
-      entityId: attendance._id,
-    });
+    const missCount = countSelfieMisses(attendance);
 
-    await safeActivityLog({
-      userId: req.user._id,
-      role: req.user.role,
-      action: "AUTO_CHECK_OUT_MISSED_SELFIE",
-      description: "Auto check-out due to missed selfie verification.",
-      entityId: attendance._id,
-    });
+    // auto-checkout only if 2nd miss
+    if (missCount > MAX_ALLOWED_SELFIE_MISSES) {
+      await autoCheckoutAttendance({
+        attendance,
+        reason: "Missed selfie verification 2 times",
+        actorUser: req.user,
+      });
 
-    await autoCheckoutAttendance({
+      return res.json({
+        missed: true,
+        message: "You missed selfie verification 2 times. Auto check-out applied.",
+        attendance,
+      });
+    }
+
+    return res.json({
+      missed: true,
+      message: "You missed selfie verification. Warning: next miss will auto check-out.",
       attendance,
-      reason: "Missed selfie verification (deadline passed)",
-      actorUser: req.user,
     });
-
-    return res.json({ missed: true, message: "Missed selfie verification. Auto check-out applied.", attendance });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

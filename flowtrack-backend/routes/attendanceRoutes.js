@@ -14,6 +14,7 @@ const {
   // Selfie verification APIs
   getSelfieCheckRequirement,
   submitSelfieCheck,
+  skipSelfieCheck, // ✅ added
   checkMissedSelfieDeadlines,
 } = require('../controllers/attendanceController');
 
@@ -35,6 +36,7 @@ router.post('/face-check-out', protect, faceUpload.single('selfie'), faceCheckOu
 // Selfie Verification (Employee only)
 router.get('/selfie-check', protect, authorize('employee'), getSelfieCheckRequirement);
 router.post('/selfie-check/:checkId', protect, authorize('employee'), faceUpload.single('selfie'), submitSelfieCheck);
+router.post('/selfie-check/:checkId/skip', protect, authorize('employee'), skipSelfieCheck); // ✅ added
 router.get('/selfie-check/missed', protect, authorize('employee'), checkMissedSelfieDeadlines);
 
 router.get('/', protect, getAttendance);

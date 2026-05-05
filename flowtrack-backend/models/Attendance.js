@@ -9,7 +9,8 @@ const selfieCheckSchema = new mongoose.Schema(
     selfieImage: { type: String, default: '' },
     status: {
       type: String,
-      enum: ['pending', 'verified', 'failed', 'missed'],
+      // added "skipped"
+      enum: ['pending', 'verified', 'failed', 'missed', 'skipped'],
       default: 'pending',
     },
     verifiedAt: { type: Date, default: null },
@@ -40,7 +41,7 @@ const attendanceSchema = new mongoose.Schema(
     overtimeHours: { type: Number, default: 0 },
 
     // ---- SELFIE VERIFICATION ----
-    // Used for: 2 checks within first 10 minutes after employee check-in
+    // Updated: Random 5 checks between 10AM-6PM after employee check-in
     selfieChecks: { type: [selfieCheckSchema], default: [] },
 
     autoCheckoutReason: { type: String, default: '' },
