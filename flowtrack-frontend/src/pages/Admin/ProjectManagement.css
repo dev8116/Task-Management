@@ -22,6 +22,7 @@
   color: #888;
   margin-top: 2px;
 }
+
 .status-badge {
   display: inline-block;
   padding: 6px 12px;
@@ -94,4 +95,26 @@
 }
 .btn-secondary:hover {
   background: #0284c7;
+}
+
+/* ✅ GitHub repo button (View Repository) */
+.action-btn.github-btn,
+.action-btn.github-btn:visited {
+  background: #111827;          /* GitHub-like dark */
+  color: #ffffff;
+  border: 1px solid #111827;
+}
+
+.action-btn.github-btn:hover {
+  background: #0b1220;
+  border-color: #0b1220;
+}
+
+/* Optional: smaller + consistent inside table cells */
+.action-btn.github-btn {
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
 }

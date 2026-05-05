@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const taskSchema = new mongoose.Schema(
   {
-    title:       { type: String, required: [true, "Task title is required"], trim: true },
+    title: { type: String, required: [true, "Task title is required"], trim: true },
     description: { type: String, default: "" },
 
     project: {
@@ -29,9 +29,7 @@ const taskSchema = new mongoose.Schema(
     },
 
     // Multi-assign
-    assignedEmployees: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    ],
+    assignedEmployees: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
     status: {
       type: String,
@@ -45,7 +43,7 @@ const taskSchema = new mongoose.Schema(
     },
 
     // deadlines
-    dueDate:  { type: Date, default: null },
+    dueDate: { type: Date, default: null },
     deadline: { type: Date, default: null },
 
     updatedBy: {
@@ -54,16 +52,22 @@ const taskSchema = new mongoose.Schema(
       default: null,
     },
 
-    // Completion Submission
+    // ✅ GitHub integration fields
+    githubBranch: { type: String, default: "" },
+    githubIssueUrl: { type: String, default: "" },
+    githubCommitUrl: { type: String, default: "" },
+    githubPullRequestUrl: { type: String, default: "" },
+
+    // Completion Submission (KEEP EXISTING)
     submissionFile: {
-      filename:   { type: String, default: null },
-      path:       { type: String, default: null },
-      mimetype:   { type: String, default: null },
-      uploadedAt: { type: Date,   default: null },
+      filename: { type: String, default: null },
+      path: { type: String, default: null },
+      mimetype: { type: String, default: null },
+      uploadedAt: { type: Date, default: null },
     },
     submissionStatus: {
       type: String,
-      enum: ["none", "pending", "pending-approval", "approved", "rejected"], // added pending-approval
+      enum: ["none", "pending", "pending-approval", "approved", "rejected"],
       default: "none",
     },
     submissionNote: { type: String, default: "" },

@@ -6,28 +6,53 @@ const User = require("../models/User");
 const { notify, getRecipients } = require("../utils/notify");
 const { updateProjectProgress } = require("../utils/projectProgress");
 
+// ── GitHub validators ─────────────────────────────────────────
+const isEmpty = (v) => v === undefined || v === null || String(v).trim() === "";
+
+function isValidGitHubBranchName(branch) {
+  if (isEmpty(branch)) return true;
+  const b = String(branch).trim();
+  // allow letters/numbers/._-/ (common branch names like feature/login_fix)
+  return /^[A-Za-z0-9._\-\/]+$/.test(b) && !b.includes("..") && !b.startsWith("/") && !b.endsWith("/");
+}
+
+function isValidGitHubIssueUrl(url) {
+  if (isEmpty(url)) return true;
+  const s = String(url).trim();
+  return /^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/issues\/\d+\/?(#.*)?$/.test(s);
+}
+
+function isValidGitHubCommitUrl(url) {
+  if (isEmpty(url)) return true;
+  const s = String(url).trim();
+  return /^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/commit\/[0-9a-fA-F]{7,40}\/?$/.test(s);
+}
+
+function isValidGitHubPullRequestUrl(url) {
+  if (isEmpty(url)) return true;
+  const s = String(url).trim();
+  return /^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/pull\/\d+\/?$/.test(s);
+}
+
+function normalizeStr(v) {
+  return String(v || "").trim();
+}
+
 // ── GET /api/tasks
 exports.getTasks = async (req, res) => {
   try {
     const query = {};
 
     if (req.user.role === "employee") {
-      query.$or = [
-        { assignedTo: req.user._id },
-        { assignedEmployees: req.user._id },
-      ];
+      query.$or = [{ assignedTo: req.user._id }, { assignedEmployees: req.user._id }];
       const me = await User.findById(req.user._id).select("manager");
       query.$and = [{ assignedManager: me?.manager || null }];
     } else if (req.user.role === "manager") {
-      // Only tasks this manager created and owns
-      query.$and = [
-        { createdBy: req.user._id },
-        { assignedManager: req.user._id },
-      ];
+      query.$and = [{ createdBy: req.user._id }, { assignedManager: req.user._id }];
     }
 
     const tasks = await Task.find(query)
-      .populate("project", "name assignedManager")
+      .populate("project", "name assignedManager githubRepoUrl")
       .populate("assignedTo", "name email")
       .populate("assignedEmployees", "name email")
       .populate("createdBy", "name email")
@@ -44,7 +69,7 @@ exports.getTasks = async (req, res) => {
 exports.getTaskById = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
-      .populate("project", "name assignedManager")
+      .populate("project", "name assignedManager githubRepoUrl")
       .populate("assignedTo", "name email")
       .populate("assignedEmployees", "name email")
       .populate("createdBy", "name email")
@@ -66,7 +91,7 @@ exports.getTaskById = async (req, res) => {
   }
 };
 
-// ── POST /api/tasks
+// ── POST /api/tasks (Admin/Manager)
 exports.createTask = async (req, res) => {
   try {
     const {
@@ -80,7 +105,19 @@ exports.createTask = async (req, res) => {
       dueDate,
       deadline,
       status,
+
+      // ✅ GitHub fields (Admin/Manager only)
+      githubBranch,
+      githubIssueUrl,
     } = req.body;
+
+    // Validate GitHub fields
+    if (!isValidGitHubBranchName(githubBranch)) {
+      return res.status(400).json({ success: false, message: "Invalid GitHub branch name." });
+    }
+    if (!isValidGitHubIssueUrl(githubIssueUrl)) {
+      return res.status(400).json({ success: false, message: "Invalid GitHub issue URL." });
+    }
 
     // Resolve manager: explicit > project owner > manager creating
     let resolvedManager = assignedManager;
@@ -96,12 +133,13 @@ exports.createTask = async (req, res) => {
       if (!proj) return res.status(404).json({ success: false, message: "Project not found" });
 
       if (!proj.assignedManager) {
-        // claim unassigned project for this manager
         proj.assignedManager = req.user._id;
         await proj.save();
         resolvedManager = req.user._id;
       } else if (proj.assignedManager.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ success: false, message: "You cannot create tasks for another manager's project" });
+        return res
+          .status(403)
+          .json({ success: false, message: "You cannot create tasks for another manager's project" });
       }
     }
 
@@ -111,23 +149,27 @@ exports.createTask = async (req, res) => {
       project,
       assignedManager: resolvedManager,
       assignedTo,
-      assignedEmployees: assignedEmployees.length
-        ? assignedEmployees
-        : assignedTo
-        ? [assignedTo]
-        : [],
+      assignedEmployees: assignedEmployees.length ? assignedEmployees : assignedTo ? [assignedTo] : [],
       priority,
       dueDate: deadline || dueDate || null,
       deadline: deadline || dueDate || null,
       status,
       createdBy: req.user._id,
       updatedBy: req.user._id,
+
+      // GitHub (manager/admin set)
+      githubBranch: normalizeStr(githubBranch),
+      githubIssueUrl: normalizeStr(githubIssueUrl),
+
+      // commit/pr must be empty at create (employee submits later)
+      githubCommitUrl: "",
+      githubPullRequestUrl: "",
     });
 
     await task.populate([
       { path: "assignedTo", select: "name email" },
       { path: "assignedEmployees", select: "name email" },
-      { path: "project", select: "name" },
+      { path: "project", select: "name githubRepoUrl" },
     ]);
 
     const actorDoc = await User.findById(req.user._id);
@@ -158,13 +200,12 @@ exports.createTask = async (req, res) => {
   }
 };
 
-// ── PUT /api/tasks/:id
+// ── PUT /api/tasks/:id (Admin/Manager)
 exports.updateTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ success: false, message: "Task not found" });
 
-    // Block edits once completed
     if (task.status === "completed") {
       return res.status(400).json({ success: false, message: "Completed tasks cannot be edited" });
     }
@@ -188,7 +229,27 @@ exports.updateTask = async (req, res) => {
       dueDate,
       deadline,
       status,
+
+      // ✅ GitHub fields (Admin/Manager only)
+      githubBranch,
+      githubIssueUrl,
+
+      // ignore these if someone tries via updateTask (employee submits later)
+      githubCommitUrl,
+      githubPullRequestUrl,
     } = req.body;
+
+    if (githubCommitUrl !== undefined || githubPullRequestUrl !== undefined) {
+      // prevent manager/admin from setting commit/pr in create/edit route
+      // (employee must submit via submitCompletion)
+    }
+
+    if (githubBranch !== undefined && !isValidGitHubBranchName(githubBranch)) {
+      return res.status(400).json({ success: false, message: "Invalid GitHub branch name." });
+    }
+    if (githubIssueUrl !== undefined && !isValidGitHubIssueUrl(githubIssueUrl)) {
+      return res.status(400).json({ success: false, message: "Invalid GitHub issue URL." });
+    }
 
     if (title !== undefined) task.title = title;
     if (description !== undefined) task.description = description;
@@ -206,9 +267,11 @@ exports.updateTask = async (req, res) => {
         const proj = await Project.findById(project).select("assignedManager");
         if (!proj) return res.status(404).json({ success: false, message: "Project not found" });
         if (proj.assignedManager?.toString() !== req.user._id.toString()) {
-          return res.status(403).json({ success: false, message: "You cannot move task to another manager's project" });
+          return res
+            .status(403)
+            .json({ success: false, message: "You cannot move task to another manager's project" });
         }
-        task.assignedManager = proj.assignedManager; // align with project owner
+        task.assignedManager = proj.assignedManager;
       }
       task.project = project;
     }
@@ -216,19 +279,23 @@ exports.updateTask = async (req, res) => {
     if (assignedManager !== undefined) task.assignedManager = assignedManager;
     if (assignedTo !== undefined) {
       task.assignedTo = assignedTo;
-      task.assignedEmployees =
-        assignedEmployees && assignedEmployees.length ? assignedEmployees : [assignedTo];
+      task.assignedEmployees = assignedEmployees && assignedEmployees.length ? assignedEmployees : [assignedTo];
     } else if (assignedEmployees !== undefined) {
       task.assignedEmployees = assignedEmployees;
       if (!task.assignedTo && assignedEmployees.length) task.assignedTo = assignedEmployees[0];
     }
 
+    // ✅ GitHub fields update
+    if (githubBranch !== undefined) task.githubBranch = normalizeStr(githubBranch);
+    if (githubIssueUrl !== undefined) task.githubIssueUrl = normalizeStr(githubIssueUrl);
+
     task.updatedBy = req.user._id;
     await task.save();
+
     await task.populate([
       { path: "assignedTo", select: "name email" },
       { path: "assignedEmployees", select: "name email" },
-      { path: "project", select: "name" },
+      { path: "project", select: "name githubRepoUrl" },
     ]);
 
     const actorDoc = await User.findById(req.user._id);
@@ -318,11 +385,34 @@ exports.updateTaskStatus = async (req, res) => {
 };
 
 // ── POST /api/tasks/:id/submit-completion  (Employee)
+// KEEP FILE UPLOAD + add commit/pr urls
 exports.submitCompletion = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ success: false, message: "Task not found" });
 
+    if (req.user.role !== "employee") {
+      return res.status(403).json({ success: false, message: "Only employees can submit task completion" });
+    }
+
+    const isAssigned =
+      task.assignedTo?.toString() === req.user._id.toString() ||
+      task.assignedEmployees.map(String).includes(req.user._id.toString());
+
+    if (!isAssigned) {
+      return res.status(403).json({ success: false, message: "You are not assigned to this task" });
+    }
+
+    const { githubCommitUrl, githubPullRequestUrl, submissionNote } = req.body;
+
+    if (!isValidGitHubCommitUrl(githubCommitUrl)) {
+      return res.status(400).json({ success: false, message: "Invalid GitHub commit URL." });
+    }
+    if (!isValidGitHubPullRequestUrl(githubPullRequestUrl)) {
+      return res.status(400).json({ success: false, message: "Invalid GitHub pull request URL." });
+    }
+
+    // ✅ keep existing file upload logic
     if (req.file) {
       task.submissionFile = {
         filename: req.file.filename,
@@ -333,7 +423,12 @@ exports.submitCompletion = async (req, res) => {
       task.submissionStatus = "pending-approval";
       task.status = "pending-approval";
     }
-    task.submissionNote = req.body.submissionNote || "";
+
+    // ✅ new: store commit/pr links from employee
+    if (githubCommitUrl !== undefined) task.githubCommitUrl = normalizeStr(githubCommitUrl);
+    if (githubPullRequestUrl !== undefined) task.githubPullRequestUrl = normalizeStr(githubPullRequestUrl);
+
+    task.submissionNote = submissionNote || "";
     await task.save();
 
     const actorDoc = await User.findById(req.user._id);
@@ -457,7 +552,6 @@ exports.deleteTask = async (req, res) => {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ success: false, message: "Task not found" });
 
-    // Block deletes once completed
     if (task.status === "completed") {
       return res.status(400).json({ success: false, message: "Completed tasks cannot be deleted" });
     }

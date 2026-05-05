@@ -7,120 +7,91 @@ import {
 } from 'react-icons/fi';
 import './ManagerTasks.css';
 
+// ── GitHub validators ─────────────────────────────────────────
+const isValidBranch = (v) => {
+  if (!v || !String(v).trim()) return true;
+  const b = String(v).trim();
+  return /^[A-Za-z0-9._\-\/]+$/.test(b) && !b.includes("..") && !b.startsWith("/") && !b.endsWith("/");
+};
+const isValidIssueUrl = (v) => {
+  if (!v || !String(v).trim()) return true;
+  return /^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/issues\/\d+\/?(#.*)?$/.test(String(v).trim());
+};
+const openLink = (url) => {
+  const u = String(url || '').trim();
+  if (!u) return;
+  window.open(u, '_blank', 'noopener,noreferrer');
+};
+
 // ── Demo Task Templates ────────────────────────────────────────────────
-// All values match backend enums EXACTLY (all lowercase):
-//   status:   'pending' | 'in-progress'
-//   priority: 'low' | 'medium' | 'high' | 'urgent'
 const DEMO_TASKS = [
-  {
-    label: '🐛 Bug Fix',
-    title: 'Fix critical bug in production',
-    description: 'Identify and resolve the critical bug reported by the client. Test thoroughly before marking complete.',
-    priority: 'urgent',
-    status: 'pending',
-  },
-  {
-    label: '🎨 UI Design',
-    title: 'Design new dashboard UI',
-    description: 'Create a clean and modern dashboard layout. Follow the existing design system and brand guidelines.',
-    priority: 'medium',
-    status: 'pending',
-  },
-  {
-    label: '📄 Documentation',
-    title: 'Write API documentation',
-    description: 'Document all REST API endpoints with request/response examples using the standard format.',
-    priority: 'low',
-    status: 'pending',
-  },
-  {
-    label: '🔍 Code Review',
-    title: 'Review and test new feature branch',
-    description: 'Review the pull request, run tests, check for edge cases, and provide detailed feedback.',
-    priority: 'medium',
-    status: 'in-progress',
-  },
-  {
-    label: '🚀 Feature Development',
-    title: 'Develop new user authentication module',
-    description: 'Implement login, registration, password reset, and JWT token management for the new module.',
-    priority: 'high',
-    status: 'pending',
-  },
-  {
-    label: '🧪 Testing',
-    title: 'Write unit tests for core functions',
-    description: 'Write comprehensive unit tests covering all edge cases. Aim for minimum 80% code coverage.',
-    priority: 'medium',
-    status: 'pending',
-  },
-  {
-    label: '📊 Report',
-    title: 'Prepare weekly performance report',
-    description: 'Compile task completion stats, attendance summary, and key highlights for the weekly review meeting.',
-    priority: 'low',
-    status: 'pending',
-  },
-  {
-    label: '🔧 Setup',
-    title: 'Configure deployment pipeline',
-    description: 'Set up CI/CD pipeline for automated testing and deployment to staging and production environments.',
-    priority: 'high',
-    status: 'pending',
-  },
+  { label: '🐛 Bug Fix', title: 'Fix critical bug in production', description: 'Identify and resolve the critical bug reported by the client. Test thoroughly before marking complete.', priority: 'urgent', status: 'pending' },
+  { label: '🎨 UI Design', title: 'Design new dashboard UI', description: 'Create a clean and modern dashboard layout. Follow the existing design system and brand guidelines.', priority: 'medium', status: 'pending' },
+  { label: '📄 Documentation', title: 'Write API documentation', description: 'Document all REST API endpoints with request/response examples using the standard format.', priority: 'low', status: 'pending' },
+  { label: '🔍 Code Review', title: 'Review and test new feature branch', description: 'Review the pull request, run tests, check for edge cases, and provide detailed feedback.', priority: 'medium', status: 'in-progress' },
+  { label: '🚀 Feature Development', title: 'Develop new user authentication module', description: 'Implement login, registration, password reset, and JWT token management for the new module.', priority: 'high', status: 'pending' },
+  { label: '🧪 Testing', title: 'Write unit tests for core functions', description: 'Write comprehensive unit tests covering all edge cases. Aim for minimum 80% code coverage.', priority: 'medium', status: 'pending' },
+  { label: '📊 Report', title: 'Prepare weekly performance report', description: 'Compile task completion stats, attendance summary, and key highlights for the weekly review meeting.', priority: 'low', status: 'pending' },
+  { label: '🔧 Setup', title: 'Configure deployment pipeline', description: 'Set up CI/CD pipeline for automated testing and deployment to staging and production environments.', priority: 'high', status: 'pending' },
 ];
 
 export default function ManagerTasks() {
-  const [tasks, setTasks]         = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [projects, setProjects]   = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // ── Create Task modal ──
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState({
     title: '', description: '', project: '',
-    priority: 'medium',   // ✅ lowercase — matches enum
+    priority: 'medium',
     deadline: '',
-    status: 'pending',    // ✅ lowercase — matches enum
+    status: 'pending',
+
+    // ✅ GitHub fields for manager/admin
+    githubBranch: '',
+    githubIssueUrl: '',
   });
   const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [creating, setCreating]                 = useState(false);
-  const [showDemoMenu, setShowDemoMenu]         = useState(false);
-  const [aiTaskLoading, setAiTaskLoading]       = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [showDemoMenu, setShowDemoMenu] = useState(false);
+  const [aiTaskLoading, setAiTaskLoading] = useState(false);
 
   // Demo-only controls
-  const [allowNoProject, setAllowNoProject] = useState(false); // shows checkbox
-  const [useNoProject, setUseNoProject]     = useState(false); // checkbox value
+  const [allowNoProject, setAllowNoProject] = useState(false);
+  const [useNoProject, setUseNoProject] = useState(false);
 
   // ── Assign Employee modal ──
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [assigningTask, setAssigningTask]     = useState(null);
-  const [assignEmpId, setAssignEmpId]         = useState('');
+  const [assigningTask, setAssigningTask] = useState(null);
+  const [assignEmpId, setAssignEmpId] = useState('');
 
   // ── Review Submission modal ──
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [reviewingTask, setReviewingTask]     = useState(null);
-  const [rejectNote, setRejectNote]           = useState('');
-  const [reviewing, setReviewing]             = useState(false);
+  const [reviewingTask, setReviewingTask] = useState(null);
+  const [rejectNote, setRejectNote] = useState('');
+  const [reviewing, setReviewing] = useState(false);
 
   // ── Edit Task modal ──
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingTask, setEditingTask]     = useState(null);
+  const [editingTask, setEditingTask] = useState(null);
   const [editForm, setEditForm] = useState({
     title: '', description: '', project: '',
     priority: 'medium',
     deadline: '',
     status: 'pending',
+
+    // ✅ GitHub fields
+    githubBranch: '',
+    githubIssueUrl: '',
   });
-  const [editing, setEditing]             = useState(false);
+  const [editing, setEditing] = useState(false);
 
   // ── Filter ──
   const [filter, setFilter] = useState({ status: '', priority: '', project: '' });
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+  useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     try {
@@ -129,12 +100,12 @@ export default function ManagerTasks() {
         API.get('/projects'),
         API.get('/users/my-team'),
       ]);
-      const tasks    = taskRes.data?.data ?? taskRes.data;
+      const tasks = taskRes.data?.data ?? taskRes.data;
       const projects = projRes.data?.data ?? projRes.data;
-      const team     = teamRes.data?.data ?? teamRes.data;
-      setTasks(Array.isArray(tasks)       ? tasks    : []);
+      const team = teamRes.data?.data ?? teamRes.data;
+      setTasks(Array.isArray(tasks) ? tasks : []);
       setProjects(Array.isArray(projects) ? projects : []);
-      setEmployees(Array.isArray(team)    ? team     : []);
+      setEmployees(Array.isArray(team) ? team : []);
     } catch {
       toast.error('Failed to load data');
     } finally {
@@ -145,9 +116,11 @@ export default function ManagerTasks() {
   const resetForm = () => {
     setForm({
       title: '', description: '', project: '',
-      priority: 'medium',   // ✅ lowercase
+      priority: 'medium',
       deadline: '',
-      status: 'pending',    // ✅ lowercase
+      status: 'pending',
+      githubBranch: '',
+      githubIssueUrl: '',
     });
     setSelectedEmployee('');
     setShowDemoMenu(false);
@@ -179,19 +152,17 @@ export default function ManagerTasks() {
     }
   };
 
-  // ── Apply Demo Template ──
-  // Values already match backend enum (all lowercase)
   const applyDemo = (demo) => {
     setForm((prev) => ({
       ...prev,
-      title:       demo.title,
+      title: demo.title,
       description: demo.description,
-      priority:    demo.priority,  // already lowercase: 'low'|'medium'|'high'|'urgent'
-      status:      demo.status,    // already lowercase: 'pending'|'in-progress'
-      project:     '',             // clear project to enable no-project flow
+      priority: demo.priority,
+      status: demo.status,
+      project: '',
     }));
     setAllowNoProject(true);
-    setUseNoProject(true); // default to skipping project after demo
+    setUseNoProject(true);
     setShowDemoMenu(false);
     toast.info(`Template applied: ${demo.label}`);
   };
@@ -201,21 +172,28 @@ export default function ManagerTasks() {
     e.preventDefault();
     if (!form.title.trim()) return toast.error('Task title is required');
     if (!useNoProject && !form.project) return toast.error('Please select a project');
-    if (!selectedEmployee)  return toast.error('Please assign an employee');
-    if (!form.deadline)     return toast.error('Please set a deadline');
+    if (!selectedEmployee) return toast.error('Please assign an employee');
+    if (!form.deadline) return toast.error('Please set a deadline');
+
+    if (!isValidBranch(form.githubBranch)) return toast.error('Invalid GitHub branch');
+    if (!isValidIssueUrl(form.githubIssueUrl)) return toast.error('Invalid GitHub issue URL');
 
     setCreating(true);
     try {
       await API.post('/tasks', {
-        title:             form.title,
-        description:       form.description,
-        project:           useNoProject ? null : form.project,
-        assignedTo:        selectedEmployee,
+        title: form.title,
+        description: form.description,
+        project: useNoProject ? null : form.project,
+        assignedTo: selectedEmployee,
         assignedEmployees: [selectedEmployee],
-        priority:          form.priority,  // 'low'|'medium'|'high'|'urgent'
-        dueDate:           form.deadline,
-        deadline:          form.deadline,
-        status:            form.status,    // 'pending'|'in-progress'
+        priority: form.priority,
+        dueDate: form.deadline,
+        deadline: form.deadline,
+        status: form.status,
+
+        // ✅ GitHub (manager/admin)
+        githubBranch: form.githubBranch,
+        githubIssueUrl: form.githubIssueUrl,
       });
       toast.success('Task created successfully!');
       setShowCreateModal(false);
@@ -228,7 +206,7 @@ export default function ManagerTasks() {
     }
   };
 
-  // ── Assign Employee (existing task) ──
+  // ── Assign Employee ──
   const openAssignModal = (task) => {
     setAssigningTask(task);
     const cur = task.assignedEmployees?.[0] ?? task.assignedTo;
@@ -240,7 +218,7 @@ export default function ManagerTasks() {
     if (!assignEmpId) return toast.error('Please select an employee');
     try {
       await API.put(`/tasks/${assigningTask._id}`, {
-        assignedTo:        assignEmpId,
+        assignedTo: assignEmpId,
         assignedEmployees: [assignEmpId],
       });
       toast.success('Employee assigned!');
@@ -265,11 +243,7 @@ export default function ManagerTasks() {
         decision,
         note: rejectNote,
       });
-      toast.success(
-        decision === 'approved'
-          ? '✅ Task approved & completed!'
-          : '❌ Submission rejected.'
-      );
+      toast.success(decision === 'approved' ? '✅ Task approved & completed!' : '❌ Submission rejected.');
       setShowReviewModal(false);
       fetchAll();
     } catch (err) {
@@ -307,40 +281,7 @@ export default function ManagerTasks() {
       openBlob(response.data, contentType, filename);
       return;
     } catch (err) {
-      if (err.response?.status === 401) {
-        try {
-          const raw = localStorage.getItem('flowtrack_user');
-          const token = raw ? JSON.parse(raw)?.token : null;
-          if (token) {
-            const response = await API.get(`/tasks/${taskId}/submission-file`, {
-              responseType: 'blob',
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            const contentType = response.headers['content-type'] || 'application/octet-stream';
-            const disposition = response.headers['content-disposition'] || '';
-            let filename = fallbackFilename || '';
-            const match = /filename\*?=(?:UTF-8'')?"?([^";]+)/i.exec(disposition);
-            if (match && match[1]) filename = match[1].replace(/['"]/g, '');
-            if (!filename) filename = fallbackFilename || `submission-${taskId}`;
-            openBlob(response.data, contentType, filename);
-            return;
-          }
-        } catch (innerErr) {
-          console.error('Manual header retry failed', innerErr);
-        }
-        toast.error(err.response?.data?.message || 'Not authorized. Please login again.');
-        localStorage.removeItem('flowtrack_user');
-        window.location.href = '/login';
-        return;
-      }
-
-      if (err.response?.status === 404) {
-        toast.error(err.response?.data?.message || 'File not found.');
-        return;
-      }
-
-      console.error('Failed to fetch submission file', err);
-      toast.error('Failed to fetch file. See console for details.');
+      toast.error('Failed to fetch file.');
     }
   };
 
@@ -352,12 +293,11 @@ export default function ManagerTasks() {
       description: task.description || '',
       project: task.project?._id || '',
       priority: task.priority || 'medium',
-      deadline: task.deadline
-        ? task.deadline.slice(0, 10)
-        : task.dueDate
-        ? task.dueDate.slice(0, 10)
-        : '',
+      deadline: task.deadline ? task.deadline.slice(0, 10) : task.dueDate ? task.dueDate.slice(0, 10) : '',
       status: task.status || 'pending',
+
+      githubBranch: task.githubBranch || '',
+      githubIssueUrl: task.githubIssueUrl || '',
     });
     const cur = task.assignedEmployees?.[0] ?? task.assignedTo;
     setSelectedEmployee(typeof cur === 'object' ? cur?._id ?? '' : cur ?? '');
@@ -367,21 +307,27 @@ export default function ManagerTasks() {
   const handleEdit = async (e) => {
     e.preventDefault();
     if (!editForm.title.trim()) return toast.error('Task title is required');
-    if (!selectedEmployee)      return toast.error('Please assign an employee');
-    if (!editForm.deadline)     return toast.error('Please set a deadline');
+    if (!selectedEmployee) return toast.error('Please assign an employee');
+    if (!editForm.deadline) return toast.error('Please set a deadline');
+
+    if (!isValidBranch(editForm.githubBranch)) return toast.error('Invalid GitHub branch');
+    if (!isValidIssueUrl(editForm.githubIssueUrl)) return toast.error('Invalid GitHub issue URL');
 
     setEditing(true);
     try {
       await API.put(`/tasks/${editingTask._id}`, {
-        title:             editForm.title,
-        description:       editForm.description,
-        project:           editForm.project || null,
-        assignedTo:        selectedEmployee,
+        title: editForm.title,
+        description: editForm.description,
+        project: editForm.project || null,
+        assignedTo: selectedEmployee,
         assignedEmployees: [selectedEmployee],
-        priority:          editForm.priority,
-        dueDate:           editForm.deadline,
-        deadline:          editForm.deadline,
-        status:            editForm.status,
+        priority: editForm.priority,
+        dueDate: editForm.deadline,
+        deadline: editForm.deadline,
+        status: editForm.status,
+
+        githubBranch: editForm.githubBranch,
+        githubIssueUrl: editForm.githubIssueUrl,
       });
       toast.success('Task updated!');
       setShowEditModal(false);
@@ -409,23 +355,16 @@ export default function ManagerTasks() {
 
   const getEmpNames = (task) => {
     if (task.assignedEmployees?.length > 0) {
-      return task.assignedEmployees
-        .map((e) => (typeof e === 'object' ? e.name : e))
-        .filter(Boolean)
-        .join(', ');
+      return task.assignedEmployees.map((e) => (typeof e === 'object' ? e.name : e)).filter(Boolean).join(', ');
     }
-    if (task.assignedTo) {
-      return typeof task.assignedTo === 'object'
-        ? task.assignedTo.name || ''
-        : task.assignedTo;
-    }
+    if (task.assignedTo) return typeof task.assignedTo === 'object' ? task.assignedTo.name || '' : task.assignedTo;
     return '';
   };
 
   const filteredTasks = tasks.filter((t) => {
-    if (filter.status   && t.status    !== filter.status)     return false;
-    if (filter.priority && t.priority  !== filter.priority)   return false;
-    if (filter.project  && t.project?._id !== filter.project) return false;
+    if (filter.status && t.status !== filter.status) return false;
+    if (filter.priority && t.priority !== filter.priority) return false;
+    if (filter.project && t.project?._id !== filter.project) return false;
     return true;
   });
 
@@ -433,32 +372,21 @@ export default function ManagerTasks() {
 
   return (
     <div className="mgrtasks-container">
-
-      {/* ── Header ── */}
       <div className="mgrtasks-header">
         <h2 className="mgrtasks-title">Manage Tasks</h2>
-        <button
-          className="mgrtask-btn btn-primary"
-          onClick={() => { resetForm(); setShowCreateModal(true); }}
-        >
+        <button className="mgrtask-btn btn-primary" onClick={() => { resetForm(); setShowCreateModal(true); }}>
           <FiPlus style={{ marginRight: 6 }} /> Create Task
         </button>
       </div>
 
-      {/* ── No team warning ── */}
       {employees.length === 0 && (
         <div className="mgrtasks-warning">
           ⚠️ No team members found. Ask the Admin to assign employees to your team first.
         </div>
       )}
 
-      {/* ── Filters ── */}
       <div className="mgrtasks-filters">
-        {/* status values must match enum: 'pending'|'in-progress'|'pending-approval'|'completed' */}
-        <select
-          value={filter.status}
-          onChange={(e) => setFilter({ ...filter, status: e.target.value })}
-        >
+        <select value={filter.status} onChange={(e) => setFilter({ ...filter, status: e.target.value })}>
           <option value="">All Statuses</option>
           <option value="pending">Pending</option>
           <option value="in-progress">In Progress</option>
@@ -466,11 +394,7 @@ export default function ManagerTasks() {
           <option value="completed">Completed</option>
         </select>
 
-        {/* priority values must match enum: 'low'|'medium'|'high'|'urgent' */}
-        <select
-          value={filter.priority}
-          onChange={(e) => setFilter({ ...filter, priority: e.target.value })}
-        >
+        <select value={filter.priority} onChange={(e) => setFilter({ ...filter, priority: e.target.value })}>
           <option value="">All Priorities</option>
           <option value="low">Low</option>
           <option value="medium">Medium</option>
@@ -478,10 +402,7 @@ export default function ManagerTasks() {
           <option value="urgent">Urgent</option>
         </select>
 
-        <select
-          value={filter.project}
-          onChange={(e) => setFilter({ ...filter, project: e.target.value })}
-        >
+        <select value={filter.project} onChange={(e) => setFilter({ ...filter, project: e.target.value })}>
           <option value="">All Projects</option>
           {projects.map((p) => (
             <option key={p._id} value={p._id}>{p.name || p.title}</option>
@@ -489,16 +410,12 @@ export default function ManagerTasks() {
         </select>
 
         {(filter.status || filter.priority || filter.project) && (
-          <button
-            className="mgrtask-btn btn-secondary"
-            onClick={() => setFilter({ status: '', priority: '', project: '' })}
-          >
+          <button className="mgrtask-btn btn-secondary" onClick={() => setFilter({ status: '', priority: '', project: '' })}>
             Clear Filters
           </button>
         )}
       </div>
 
-      {/* ── Task Table ── */}
       <div className="mgrtasks-table-wrapper">
         <table className="mgrtasks-table">
           <thead>
@@ -509,6 +426,7 @@ export default function ManagerTasks() {
               <th>Priority</th>
               <th>Assigned To</th>
               <th>Deadline</th>
+              <th>GitHub</th>
               <th>Submission</th>
               <th>Actions</th>
             </tr>
@@ -517,6 +435,8 @@ export default function ManagerTasks() {
             {filteredTasks.map((t) => {
               const empNames = getEmpNames(t);
               const isCompleted = t.status === 'completed';
+              const deadline = t.deadline || t.dueDate;
+
               return (
                 <tr key={t._id}>
                   <td><strong>{t.title}</strong></td>
@@ -537,12 +457,38 @@ export default function ManagerTasks() {
                   </td>
                   <td>{empNames || '—'}</td>
                   <td style={{ fontSize: '13px' }}>
-                    {t.deadline
-                      ? new Date(t.deadline).toLocaleDateString()
-                      : t.dueDate
-                      ? new Date(t.dueDate).toLocaleDateString()
-                      : '—'}
+                    {deadline ? new Date(deadline).toLocaleDateString() : '—'}
                   </td>
+
+                  {/* ✅ GitHub buttons */}
+                  <td>
+                    <div className="mgr-gh-actions">
+                      {t.project?.githubRepoUrl ? (
+                        <button className="mgrtask-btn btn-gh" onClick={() => openLink(t.project.githubRepoUrl)}>
+                          View Repository
+                        </button>
+                      ) : null}
+                      {t.githubIssueUrl ? (
+                        <button className="mgrtask-btn btn-gh" onClick={() => openLink(t.githubIssueUrl)}>
+                          View Issue
+                        </button>
+                      ) : null}
+                      {t.githubCommitUrl ? (
+                        <button className="mgrtask-btn btn-gh" onClick={() => openLink(t.githubCommitUrl)}>
+                          View Commit
+                        </button>
+                      ) : null}
+                      {t.githubPullRequestUrl ? (
+                        <button className="mgrtask-btn btn-gh" onClick={() => openLink(t.githubPullRequestUrl)}>
+                          View Pull Request
+                        </button>
+                      ) : null}
+                      {!t.project?.githubRepoUrl && !t.githubIssueUrl && !t.githubCommitUrl && !t.githubPullRequestUrl ? (
+                        <span style={{ color: '#aaa', fontSize: 13 }}>—</span>
+                      ) : null}
+                    </div>
+                  </td>
+
                   <td>
                     {t.submissionFile?.filename ? (
                       <button
@@ -556,13 +502,11 @@ export default function ManagerTasks() {
                       <span style={{ color: '#aaa', fontSize: '13px' }}>—</span>
                     )}
                   </td>
+
                   <td>
                     <div className="mgr-actions">
                       {!isCompleted && (
-                        <button
-                          className="mgrtask-btn btn-secondary"
-                          onClick={() => openAssignModal(t)}
-                        >
+                        <button className="mgrtask-btn btn-secondary" onClick={() => openAssignModal(t)}>
                           {empNames ? 'Re-assign' : 'Assign'}
                         </button>
                       )}
@@ -583,16 +527,11 @@ export default function ManagerTasks() {
                         <FiTrash2 style={{ marginRight: 4 }} /> Delete
                       </button>
                       {t.status === 'pending-approval' && (
-                        <button
-                          className="mgrtask-btn btn-review"
-                          onClick={() => openReviewModal(t)}
-                        >
+                        <button className="mgrtask-btn btn-review" onClick={() => openReviewModal(t)}>
                           Review
                         </button>
                       )}
-                      {isCompleted && (
-                        <span className="mgr-done">✅ Done</span>
-                      )}
+                      {isCompleted && <span className="mgr-done">✅ Done</span>}
                     </div>
                   </td>
                 </tr>
@@ -600,10 +539,8 @@ export default function ManagerTasks() {
             })}
             {filteredTasks.length === 0 && (
               <tr>
-                <td colSpan="8" style={{ textAlign: 'center', color: '#aaa', padding: '32px' }}>
-                  {tasks.length === 0
-                    ? 'No tasks yet. Click "Create Task" to add one.'
-                    : 'No tasks match the selected filters.'}
+                <td colSpan="9" style={{ textAlign: 'center', color: '#aaa', padding: '32px' }}>
+                  {tasks.length === 0 ? 'No tasks yet. Click "Create Task" to add one.' : 'No tasks match the selected filters.'}
                 </td>
               </tr>
             )}
@@ -611,58 +548,35 @@ export default function ManagerTasks() {
         </table>
       </div>
 
-      {/* ══════════════════════════════════════════════
-          CREATE TASK MODAL
-      ══════════════════════════════════════════════ */}
+      {/* CREATE TASK MODAL */}
       {showCreateModal && (
-        <div
-          className="mgr-modal-overlay"
-          onClick={() => { setShowCreateModal(false); resetForm(); }}
-        >
+        <div className="mgr-modal-overlay" onClick={() => { setShowCreateModal(false); resetForm(); }}>
           <div className="mgr-modal-box mgr-modal-lg" onClick={(e) => e.stopPropagation()}>
-
             <div className="mgr-modal-header">
               <h3><FiPlus style={{ marginRight: 6 }} /> Create Task</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-
-                {/* ⚡ Demo Task */}
                 <div style={{ position: 'relative' }}>
-                  <button
-                    type="button"
-                    className="mgrtask-btn btn-demo"
-                    onClick={() => setShowDemoMenu((v) => !v)}
-                  >
+                  <button type="button" className="mgrtask-btn btn-demo" onClick={() => setShowDemoMenu((v) => !v)}>
                     <FiZap style={{ marginRight: 5 }} /> Demo Task
                   </button>
                   {showDemoMenu && (
                     <div className="demo-dropdown">
                       <p className="demo-dropdown-title">Choose a template:</p>
                       {DEMO_TASKS.map((demo, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          className="demo-dropdown-item"
-                          onClick={() => applyDemo(demo)}
-                        >
+                        <button key={idx} type="button" className="demo-dropdown-item" onClick={() => applyDemo(demo)}>
                           {demo.label}
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-
-                <button
-                  className="mgr-modal-close"
-                  onClick={() => { setShowCreateModal(false); resetForm(); }}
-                >
+                <button className="mgr-modal-close" onClick={() => { setShowCreateModal(false); resetForm(); }}>
                   <FiX />
                 </button>
               </div>
             </div>
 
             <form onSubmit={handleCreate} className="mgr-modal-body">
-
-              {/* Title */}
               <div className="mgr-form-group">
                 <label>Title *</label>
                 <input
@@ -674,7 +588,6 @@ export default function ManagerTasks() {
                 />
               </div>
 
-              {/* Description */}
               <div className="mgr-form-group">
                 <label>Description</label>
                 <textarea
@@ -693,7 +606,6 @@ export default function ManagerTasks() {
                 </button>
               </div>
 
-              {/* Project */}
               <div className="mgr-form-group">
                 <label>
                   Project *
@@ -736,7 +648,6 @@ export default function ManagerTasks() {
                 </div>
               </div>
 
-              {/* Assign Employee */}
               <div className="mgr-form-group">
                 <label>
                   Assign Employee *
@@ -761,31 +672,42 @@ export default function ManagerTasks() {
                 </select>
               </div>
 
-              {/* Initial Status — enum: 'pending' | 'in-progress' */}
+              {/* ✅ GitHub branch + issue */}
+              <div className="mgr-form-row">
+                <div className="mgr-form-group">
+                  <label>GitHub Branch</label>
+                  <input
+                    type="text"
+                    placeholder="feature/my-branch"
+                    value={form.githubBranch}
+                    onChange={(e) => setForm({ ...form, githubBranch: e.target.value })}
+                  />
+                </div>
+                <div className="mgr-form-group">
+                  <label>GitHub Issue URL</label>
+                  <input
+                    type="text"
+                    placeholder="https://github.com/owner/repo/issues/123"
+                    value={form.githubIssueUrl}
+                    onChange={(e) => setForm({ ...form, githubIssueUrl: e.target.value })}
+                  />
+                </div>
+              </div>
+
               <div className="mgr-form-group">
                 <label>
-                  Initial Status{' '}
-                  <span style={{ color: '#888', fontSize: '12px' }}>
-                    (you cannot change this later)
-                  </span>
+                  Initial Status <span style={{ color: '#888', fontSize: '12px' }}>(you cannot change this later)</span>
                 </label>
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                >
+                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                   <option value="pending">Pending</option>
                   <option value="in-progress">In Progress</option>
                 </select>
               </div>
 
-              {/* Priority + Deadline */}
               <div className="mgr-form-row">
                 <div className="mgr-form-group">
                   <label>Priority</label>
-                  <select
-                    value={form.priority}
-                    onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                  >
+                  <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
@@ -806,30 +728,19 @@ export default function ManagerTasks() {
               </div>
 
               <div className="mgr-modal-footer">
-                <button
-                  type="button"
-                  className="mgrtask-btn btn-secondary"
-                  onClick={() => { setShowCreateModal(false); resetForm(); }}
-                >
+                <button type="button" className="mgrtask-btn btn-secondary" onClick={() => { setShowCreateModal(false); resetForm(); }}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="mgrtask-btn btn-primary"
-                  disabled={creating}
-                >
+                <button type="submit" className="mgrtask-btn btn-primary" disabled={creating}>
                   {creating ? 'Creating...' : 'Create Task'}
                 </button>
               </div>
-
             </form>
           </div>
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════
-          ASSIGN EMPLOYEE MODAL
-      ══════════════════════════════════════════════ */}
+      {/* ASSIGN MODAL */}
       {showAssignModal && assigningTask && (
         <div className="mgr-modal-overlay" onClick={() => setShowAssignModal(false)}>
           <div className="mgr-modal-box" onClick={(e) => e.stopPropagation()}>
@@ -847,10 +758,7 @@ export default function ManagerTasks() {
               ) : (
                 <div className="mgr-form-group">
                   <label>Select Employee</label>
-                  <select
-                    value={assignEmpId}
-                    onChange={(e) => setAssignEmpId(e.target.value)}
-                  >
+                  <select value={assignEmpId} onChange={(e) => setAssignEmpId(e.target.value)}>
                     <option value="">-- Select --</option>
                     {employees.map((emp) => (
                       <option key={emp._id} value={emp._id}>
@@ -865,11 +773,7 @@ export default function ManagerTasks() {
               <button className="mgrtask-btn btn-secondary" onClick={() => setShowAssignModal(false)}>
                 Cancel
               </button>
-              <button
-                className="mgrtask-btn btn-primary"
-                onClick={handleAssign}
-                disabled={!assignEmpId || employees.length === 0}
-              >
+              <button className="mgrtask-btn btn-primary" onClick={handleAssign} disabled={!assignEmpId || employees.length === 0}>
                 Assign
               </button>
             </div>
@@ -877,9 +781,7 @@ export default function ManagerTasks() {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════
-          REVIEW SUBMISSION MODAL
-      ══════════════════════════════════════════════ */}
+      {/* REVIEW MODAL */}
       {showReviewModal && reviewingTask && (
         <div className="mgr-modal-overlay" onClick={() => setShowReviewModal(false)}>
           <div className="mgr-modal-box" onClick={(e) => e.stopPropagation()}>
@@ -889,10 +791,36 @@ export default function ManagerTasks() {
                 <FiX />
               </button>
             </div>
+
             <div className="mgr-modal-body">
               <p style={{ marginBottom: 12, color: '#555', fontSize: '14px' }}>
                 Submitted by: <strong>{getEmpNames(reviewingTask) || '—'}</strong>
               </p>
+
+              {/* ✅ GitHub links for review */}
+              <div className="mgr-gh-actions" style={{ marginBottom: 12 }}>
+                {reviewingTask.project?.githubRepoUrl ? (
+                  <button className="mgrtask-btn btn-gh" onClick={() => openLink(reviewingTask.project.githubRepoUrl)}>
+                    View Repository
+                  </button>
+                ) : null}
+                {reviewingTask.githubIssueUrl ? (
+                  <button className="mgrtask-btn btn-gh" onClick={() => openLink(reviewingTask.githubIssueUrl)}>
+                    View Issue
+                  </button>
+                ) : null}
+                {reviewingTask.githubCommitUrl ? (
+                  <button className="mgrtask-btn btn-gh" onClick={() => openLink(reviewingTask.githubCommitUrl)}>
+                    View Commit
+                  </button>
+                ) : null}
+                {reviewingTask.githubPullRequestUrl ? (
+                  <button className="mgrtask-btn btn-gh" onClick={() => openLink(reviewingTask.githubPullRequestUrl)}>
+                    View Pull Request
+                  </button>
+                ) : null}
+              </div>
+
               {reviewingTask.submissionFile?.filename ? (
                 <div style={{ marginBottom: 16 }}>
                   <p style={{ fontWeight: 600, marginBottom: 8, fontSize: '14px' }}>
@@ -915,10 +843,10 @@ export default function ManagerTasks() {
                   No file attached.
                 </p>
               )}
+
               <div className="mgr-form-group">
                 <label>
-                  Rejection Note{' '}
-                  <span style={{ color: '#aaa', fontSize: 12 }}>(fill only if rejecting)</span>
+                  Rejection Note <span style={{ color: '#aaa', fontSize: 12 }}>(fill only if rejecting)</span>
                 </label>
                 <textarea
                   placeholder="Reason for rejection..."
@@ -928,22 +856,15 @@ export default function ManagerTasks() {
                 />
               </div>
             </div>
+
             <div className="mgr-modal-footer">
               <button className="mgrtask-btn btn-secondary" onClick={() => setShowReviewModal(false)}>
                 Cancel
               </button>
-              <button
-                className="mgrtask-btn btn-reject"
-                onClick={() => handleReview('rejected')}
-                disabled={reviewing}
-              >
+              <button className="mgrtask-btn btn-reject" onClick={() => handleReview('rejected')} disabled={reviewing}>
                 <FiXCircle style={{ marginRight: 4 }} /> Reject
               </button>
-              <button
-                className="mgrtask-btn btn-approve"
-                onClick={() => handleReview('approved')}
-                disabled={reviewing}
-              >
+              <button className="mgrtask-btn btn-approve" onClick={() => handleReview('approved')} disabled={reviewing}>
                 <FiCheckCircle style={{ marginRight: 4 }} /> Approve & Complete
               </button>
             </div>
@@ -951,9 +872,7 @@ export default function ManagerTasks() {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════
-          EDIT TASK MODAL
-      ══════════════════════════════════════════════ */}
+      {/* EDIT MODAL */}
       {showEditModal && editingTask && (
         <div className="mgr-modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="mgr-modal-box mgr-modal-lg" onClick={(e) => e.stopPropagation()}>
@@ -965,8 +884,6 @@ export default function ManagerTasks() {
             </div>
 
             <form onSubmit={handleEdit} className="mgr-modal-body">
-
-              {/* Title */}
               <div className="mgr-form-group">
                 <label>Title *</label>
                 <input
@@ -977,7 +894,6 @@ export default function ManagerTasks() {
                 />
               </div>
 
-              {/* Description */}
               <div className="mgr-form-group">
                 <label>Description</label>
                 <textarea
@@ -987,13 +903,9 @@ export default function ManagerTasks() {
                 />
               </div>
 
-              {/* Project */}
               <div className="mgr-form-group">
                 <label>Project</label>
-                <select
-                  value={editForm.project}
-                  onChange={(e) => setEditForm({ ...editForm, project: e.target.value })}
-                >
+                <select value={editForm.project} onChange={(e) => setEditForm({ ...editForm, project: e.target.value })}>
                   <option value="">-- Select Project --</option>
                   {projects.map((p) => (
                     <option key={p._id} value={p._id}>
@@ -1003,14 +915,9 @@ export default function ManagerTasks() {
                 </select>
               </div>
 
-              {/* Assign Employee */}
               <div className="mgr-form-group">
                 <label>Assign Employee *</label>
-                <select
-                  value={selectedEmployee}
-                  onChange={(e) => setSelectedEmployee(e.target.value)}
-                  required
-                >
+                <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)} required>
                   <option value="">-- Select Employee --</option>
                   {employees.map((emp) => (
                     <option key={emp._id} value={emp._id}>
@@ -1020,13 +927,31 @@ export default function ManagerTasks() {
                 </select>
               </div>
 
-              {/* Status */}
+              {/* ✅ GitHub branch + issue */}
+              <div className="mgr-form-row">
+                <div className="mgr-form-group">
+                  <label>GitHub Branch</label>
+                  <input
+                    type="text"
+                    placeholder="feature/my-branch"
+                    value={editForm.githubBranch}
+                    onChange={(e) => setEditForm({ ...editForm, githubBranch: e.target.value })}
+                  />
+                </div>
+                <div className="mgr-form-group">
+                  <label>GitHub Issue URL</label>
+                  <input
+                    type="text"
+                    placeholder="https://github.com/owner/repo/issues/123"
+                    value={editForm.githubIssueUrl}
+                    onChange={(e) => setEditForm({ ...editForm, githubIssueUrl: e.target.value })}
+                  />
+                </div>
+              </div>
+
               <div className="mgr-form-group">
                 <label>Status</label>
-                <select
-                  value={editForm.status}
-                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                >
+                <select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}>
                   <option value="pending">Pending</option>
                   <option value="in-progress">In Progress</option>
                   <option value="pending-approval">Pending Approval</option>
@@ -1034,14 +959,10 @@ export default function ManagerTasks() {
                 </select>
               </div>
 
-              {/* Priority + Deadline */}
               <div className="mgr-form-row">
                 <div className="mgr-form-group">
                   <label>Priority</label>
-                  <select
-                    value={editForm.priority}
-                    onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })}
-                  >
+                  <select value={editForm.priority} onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })}>
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
@@ -1062,22 +983,13 @@ export default function ManagerTasks() {
               </div>
 
               <div className="mgr-modal-footer">
-                <button
-                  type="button"
-                  className="mgrtask-btn btn-secondary"
-                  onClick={() => setShowEditModal(false)}
-                >
+                <button type="button" className="mgrtask-btn btn-secondary" onClick={() => setShowEditModal(false)}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="mgrtask-btn btn-primary"
-                  disabled={editing}
-                >
+                <button type="submit" className="mgrtask-btn btn-primary" disabled={editing}>
                   {editing ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
-
             </form>
           </div>
         </div>

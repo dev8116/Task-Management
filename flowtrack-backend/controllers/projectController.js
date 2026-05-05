@@ -5,6 +5,16 @@ const { notify, getRecipients } = require("../utils/notify");
 const { updateProjectProgress } = require("../utils/projectProgress");
 const { validateProjectStatusUpdate } = require("../utils/projectStatus");
 
+// ── GitHub URL validators ─────────────────────────────────────
+const isEmpty = (v) => v === undefined || v === null || String(v).trim() === "";
+
+function isValidGitHubRepoUrl(url) {
+  if (isEmpty(url)) return true; // allow empty
+  const s = String(url).trim();
+  // https://github.com/<owner>/<repo> (optional trailing slash)
+  return /^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/?$/.test(s);
+}
+
 // @desc Get all projects
 // @route GET /api/projects
 exports.getAllProjects = async (req, res) => {
@@ -12,16 +22,10 @@ exports.getAllProjects = async (req, res) => {
     const query = {};
 
     if (req.user.role === "employee") {
-      query.$or = [
-        { team: req.user._id },
-        { manager: req.user._id },
-        { createdBy: req.user._id },
-      ];
+      query.$or = [{ team: req.user._id }, { manager: req.user._id }, { createdBy: req.user._id }];
     } else if (req.user.role === "manager") {
-      // Managers should see only projects assigned to them
       query.manager = req.user._id;
     }
-    // Admin sees everything
 
     let projects = await Project.find(query)
       .populate("manager", "name email")
@@ -69,10 +73,22 @@ exports.createProject = async (req, res) => {
       return res.status(403).json({ message: "Only admins can create projects." });
     }
 
-    const { name, description, status = "Planning", priority, startDate, endDate, manager } =
-      req.body;
-    let projectTeam = [];
+    const {
+      name,
+      description,
+      status = "Planning",
+      priority,
+      startDate,
+      endDate,
+      manager,
+      githubRepoUrl = "",
+    } = req.body;
 
+    if (!isValidGitHubRepoUrl(githubRepoUrl)) {
+      return res.status(400).json({ message: "Invalid GitHub repository URL." });
+    }
+
+    let projectTeam = [];
     if (manager) {
       const managerDoc = await User.findById(manager);
       if (managerDoc?.teamMembers) projectTeam = managerDoc.teamMembers;
@@ -89,6 +105,7 @@ exports.createProject = async (req, res) => {
       team: projectTeam,
       createdBy: req.user._id,
       progress: 0,
+      githubRepoUrl: String(githubRepoUrl || "").trim(),
     });
 
     const actorDoc = await User.findById(req.user._id);
@@ -121,15 +138,14 @@ exports.updateProject = async (req, res) => {
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ message: "Project not found" });
 
-    const isAssignedManager =
-      project.manager && project.manager.toString() === req.user._id.toString();
+    const isAssignedManager = project.manager && project.manager.toString() === req.user._id.toString();
 
     if (req.user.role === "employee") {
       return res.status(403).json({ message: "Employees cannot update projects." });
     }
 
     const updateData = {};
-    const { status: newStatus, description: newDescription } = req.body;
+    const { status: newStatus, description: newDescription, githubRepoUrl } = req.body;
 
     if (req.user.role === "admin") {
       // Admin may close/cancel Planning and may edit description
@@ -144,17 +160,26 @@ exports.updateProject = async (req, res) => {
       if (newDescription !== undefined) {
         updateData.description = newDescription;
       }
+
+      // ✅ Admin can update repo url
+      if (githubRepoUrl !== undefined) {
+        if (!isValidGitHubRepoUrl(githubRepoUrl)) {
+          return res.status(400).json({ message: "Invalid GitHub repository URL." });
+        }
+        updateData.githubRepoUrl = String(githubRepoUrl || "").trim();
+      }
+
       if (Object.keys(updateData).length === 0) {
         return res
           .status(400)
-          .json({ message: "Nothing to update. Provide status or description to update." });
+          .json({ message: "Nothing to update. Provide status/description/githubRepoUrl to update." });
       }
     } else if (req.user.role === "manager") {
       if (!isAssignedManager) {
         return res.status(403).json({ message: "Managers can update only their own projects." });
       }
-      const blockedAdminTransition =
-        project.status === "Planning" && ["Closed", "Cancelled"].includes(newStatus);
+
+      const blockedAdminTransition = project.status === "Planning" && ["Closed", "Cancelled"].includes(newStatus);
       if (blockedAdminTransition) {
         return res.status(403).json({ message: "Only admin can close/cancel a Planning project." });
       }
@@ -163,9 +188,13 @@ exports.updateProject = async (req, res) => {
       allowedFields.forEach((f) => {
         if (req.body[f] !== undefined) updateData[f] = req.body[f];
       });
+
+      // Managers cannot update githubRepoUrl (per your requirement)
+      if (githubRepoUrl !== undefined) {
+        return res.status(403).json({ message: "Only admin can update GitHub repository URL." });
+      }
     }
 
-    // Validate status transition if status is being changed
     if (updateData.status !== undefined) {
       const { ok, message } = validateProjectStatusUpdate(
         req.user.role,
@@ -176,11 +205,7 @@ exports.updateProject = async (req, res) => {
       if (!ok) return res.status(400).json({ message });
     }
 
-    const updatedProject = await Project.findByIdAndUpdate(
-      req.params.id,
-      { $set: updateData },
-      { new: true }
-    )
+    const updatedProject = await Project.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true })
       .populate("manager", "name email")
       .populate("team", "name email department");
 
@@ -226,10 +251,7 @@ exports.deleteProject = async (req, res) => {
     await Task.deleteMany({ project: project._id });
 
     const actorDoc = await User.findById(req.user._id);
-    const recipients = await getRecipients(
-      actorDoc,
-      project.team.concat(project.manager ? [project.manager] : [])
-    );
+    const recipients = await getRecipients(actorDoc, project.team.concat(project.manager ? [project.manager] : []));
     await notify({
       actor: req.user._id,
       actorRole: req.user.role,

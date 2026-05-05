@@ -101,6 +101,21 @@
 .priority-high   { background: #ffe4e6; color: #9f1239; }
 .priority-urgent { background: #fee2e2; color: #991b1b; }
 
+/* ✅ GitHub link buttons */
+.mytasks-linkbtn {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.mytasks-linkbtn:hover {
+  background: #e2e8f0;
+}
+
 /* Actions */
 .mytask-actions {
   display: flex;

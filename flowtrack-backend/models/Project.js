@@ -20,6 +20,9 @@ const projectSchema = new mongoose.Schema(
     team: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     progress: { type: Number, default: 0 },
+
+    // ✅ GitHub integration
+    githubRepoUrl: { type: String, default: "" },
   },
   { timestamps: true }
 );

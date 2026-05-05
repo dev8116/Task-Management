@@ -4,6 +4,12 @@ import { toast } from 'react-toastify';
 import { FiFile, FiSearch } from 'react-icons/fi';
 import './AdminTasks.css';
 
+const openLink = (url) => {
+  const u = String(url || '').trim();
+  if (!u) return;
+  window.open(u, '_blank', 'noopener,noreferrer');
+};
+
 const STATUS_STYLE = {
   pending: { background: '#fef9c3', color: '#854d0e' },
   'in-progress': { background: '#dbeafe', color: '#1e40af' },
@@ -79,33 +85,7 @@ const AdminTasks = () => {
       openBlob(res.data, contentType, filename);
       return;
     } catch (err) {
-      // 401 retry with manual token
-      if (err.response?.status === 401) {
-        const raw = localStorage.getItem('flowtrack_user');
-        const token = raw ? JSON.parse(raw)?.token : null;
-        if (token) {
-          try {
-            const res = await API.get(`/tasks/${taskId}/submission-file`, {
-              responseType: 'blob',
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            const contentType = res.headers['content-type'] || 'application/octet-stream';
-            const disposition = res.headers['content-disposition'] || '';
-            const match = /filename\*?=(?:UTF-8'')?\"?([^\";]+)/i.exec(disposition);
-            const filename = (match && match[1]) ? match[1].replace(/['"]/g, '') : fallbackFilename;
-            openBlob(res.data, contentType, filename);
-            return;
-          } catch (innerErr) {
-            // fall through
-          }
-        }
-      }
-      if (err.response?.status === 404) {
-        toast.error('File not found.');
-      } else {
-        toast.error(err.response?.data?.message || 'Failed to fetch file.');
-        console.error('View file error:', err);
-      }
+      toast.error('Failed to fetch file.');
     }
   };
 
@@ -115,9 +95,10 @@ const AdminTasks = () => {
     if (filter.project && t.project?._id !== filter.project) return false;
     if (search) {
       const q = search.toLowerCase();
-      const haystack = [
-        t.title, getEmpNames(t), t.project?.name, t.project?.title, t.priority, t.status,
-      ].filter(Boolean).join(' ').toLowerCase();
+      const haystack = [t.title, getEmpNames(t), t.project?.name, t.project?.title, t.priority, t.status]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
       if (!haystack.includes(q)) return false;
     }
     return true;
@@ -176,7 +157,14 @@ const AdminTasks = () => {
         <table className="adm-table">
           <thead>
             <tr>
-              <th>Title</th><th>Project</th><th>Status</th><th>Priority</th><th>Assigned To</th><th>Deadline</th><th>Submission</th>
+              <th>Title</th>
+              <th>Project</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Assigned To</th>
+              <th>Deadline</th>
+              <th>GitHub</th>
+              <th>Submission</th>
             </tr>
           </thead>
           <tbody>
@@ -184,6 +172,7 @@ const AdminTasks = () => {
               const deadline = t.deadline || t.dueDate;
               const statusStyle = STATUS_STYLE[t.status] || { background: '#e2e8f0', color: '#475569' };
               const priorityStyle = PRIORITY_STYLE[t.priority] || { background: '#e2e8f0', color: '#475569' };
+
               return (
                 <tr key={t._id}>
                   <td>
@@ -191,27 +180,68 @@ const AdminTasks = () => {
                     {t.description && <div className="adm-desc" title={t.description}>{t.description}</div>}
                   </td>
                   <td>{t.project?.name || t.project?.title || '—'}</td>
-                  <td><span className={`adm-badge badge-${(t.status || '').replace(/ /g, '-')}`} style={statusStyle}>
-                    {t.status === 'pending-approval' ? 'Pending Approval' : t.status?.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) || '—'}
-                  </span></td>
-                  <td><span className={`adm-priority priority-${t.priority || 'na'}`} style={priorityStyle}>
-                    {t.priority ? t.priority.charAt(0).toUpperCase() + t.priority.slice(1) : '—'}
-                  </span></td>
+                  <td>
+                    <span className={`adm-badge badge-${(t.status || '').replace(/ /g, '-')}`} style={statusStyle}>
+                      {t.status === 'pending-approval'
+                        ? 'Pending Approval'
+                        : t.status?.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) || '—'}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`adm-priority priority-${t.priority || 'na'}`} style={priorityStyle}>
+                      {t.priority ? t.priority.charAt(0).toUpperCase() + t.priority.slice(1) : '—'}
+                    </span>
+                  </td>
                   <td>{getEmpNames(t)}</td>
                   <td>{deadline ? new Date(deadline).toLocaleDateString() : '—'}</td>
-                  <td>{t.submissionFile?.filename
-                    ? <button className="adm-btn-file" onClick={() => handleViewFile(t._id, t.submissionFile.filename)} title={t.submissionFile.filename}>
+
+                  <td>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {t.project?.githubRepoUrl ? (
+                        <button className="adm-btn-secondary" onClick={() => openLink(t.project.githubRepoUrl)}>
+                          View Repository
+                        </button>
+                      ) : null}
+                      {t.githubIssueUrl ? (
+                        <button className="adm-btn-secondary" onClick={() => openLink(t.githubIssueUrl)}>
+                          View Issue
+                        </button>
+                      ) : null}
+                      {t.githubCommitUrl ? (
+                        <button className="adm-btn-secondary" onClick={() => openLink(t.githubCommitUrl)}>
+                          View Commit
+                        </button>
+                      ) : null}
+                      {t.githubPullRequestUrl ? (
+                        <button className="adm-btn-secondary" onClick={() => openLink(t.githubPullRequestUrl)}>
+                          View Pull Request
+                        </button>
+                      ) : null}
+                      {!t.project?.githubRepoUrl && !t.githubIssueUrl && !t.githubCommitUrl && !t.githubPullRequestUrl ? (
+                        <span className="adm-muted">—</span>
+                      ) : null}
+                    </div>
+                  </td>
+
+                  <td>
+                    {t.submissionFile?.filename ? (
+                      <button className="adm-btn-file" onClick={() => handleViewFile(t._id, t.submissionFile.filename)} title={t.submissionFile.filename}>
                         <FiFile style={{ marginRight: 6 }} /> View File
                       </button>
-                    : <span className="adm-muted">—</span>}
+                    ) : (
+                      <span className="adm-muted">—</span>
+                    )}
                   </td>
                 </tr>
               );
             })}
+
             {filteredTasks.length === 0 && (
-              <tr><td colSpan="7" className="adm-empty">
-                {tasks.length === 0 ? 'No tasks available.' : 'No tasks match the selected filters.'}
-              </td></tr>
+              <tr>
+                <td colSpan="8" className="adm-empty">
+                  {tasks.length === 0 ? 'No tasks available.' : 'No tasks match the selected filters.'}
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

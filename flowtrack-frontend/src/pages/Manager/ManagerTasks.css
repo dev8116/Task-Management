@@ -60,6 +60,13 @@
 .mgr-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .mgr-done    { font-size: 12px; color: #10b981; font-weight: 600; }
 
+/* ✅ GitHub actions group */
+.mgr-gh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 /* ── Buttons ────────────────────────────────────────────── */
 .mgrtask-btn {
   padding: 7px 14px; border-radius: 8px;
@@ -77,6 +84,13 @@
 .btn-review    { background: #f97316; color: #fff; }
 .btn-approve   { background: #10b981; color: #fff; }
 .btn-reject    { background: #ef4444; color: #fff; }
+
+/* ✅ GitHub button */
+.btn-gh {
+  background: #111827;
+  color: #fff;
+  border: 1px solid #111827;
+}
 
 /* AI Suggest button styling */
 .btn-ai {
