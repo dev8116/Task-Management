@@ -25,13 +25,13 @@ const openLink = (url) => {
 
 // ── Demo Task Templates ────────────────────────────────────────────────
 const DEMO_TASKS = [
-  { label: '🐛 Bug Fix', title: 'Fix critical bug in production', description: 'Identify and resolve the critical bug reported by the client. Test thoroughly before marking complete.', priority: 'urgent', status: 'pending' },
+  { label: '🐛 Bug Fix', title: 'Fix critical bug in production', description: 'Identify and resolve the critical bug reported by the client. Test thoroughly before marking complete.', priority: 'high', status: 'pending' },
   { label: '🎨 UI Design', title: 'Design new dashboard UI', description: 'Create a clean and modern dashboard layout. Follow the existing design system and brand guidelines.', priority: 'medium', status: 'pending' },
   { label: '📄 Documentation', title: 'Write API documentation', description: 'Document all REST API endpoints with request/response examples using the standard format.', priority: 'low', status: 'pending' },
-  { label: '🔍 Code Review', title: 'Review and test new feature branch', description: 'Review the pull request, run tests, check for edge cases, and provide detailed feedback.', priority: 'medium', status: 'in-progress' },
+  { label: '🔍 Code Review', title: 'Review and test new feature branch', description: 'Review the pull request, run tests, check for edge cases, and provide detailed feedback.', priority: 'medium', status: 'pending' },
   { label: '🚀 Feature Development', title: 'Develop new user authentication module', description: 'Implement login, registration, password reset, and JWT token management for the new module.', priority: 'high', status: 'pending' },
   { label: '🧪 Testing', title: 'Write unit tests for core functions', description: 'Write comprehensive unit tests covering all edge cases. Aim for minimum 80% code coverage.', priority: 'medium', status: 'pending' },
-  { label: '📊 Report', title: 'Prepare weekly performance report', description: 'Compile task completion stats, attendance summary, and key highlights for the weekly review meeting.', priority: 'low', status: 'pending' },
+  { label: '📊 Report', title: 'Prepare weekly performance report', description: 'Compile task completion stats, attendance summary, and key highlights for the weekly review meeting.', priority: 'medium', status: 'pending' },
   { label: '🔧 Setup', title: 'Configure deployment pipeline', description: 'Set up CI/CD pipeline for automated testing and deployment to staging and production environments.', priority: 'high', status: 'pending' },
 ];
 
@@ -304,6 +304,7 @@ export default function ManagerTasks() {
     setShowEditModal(true);
   };
 
+  // ✅ FIXED: do not send project unless changed
   const handleEdit = async (e) => {
     e.preventDefault();
     if (!editForm.title.trim()) return toast.error('Task title is required');
@@ -315,10 +316,12 @@ export default function ManagerTasks() {
 
     setEditing(true);
     try {
-      await API.put(`/tasks/${editingTask._id}`, {
+      const originalProjectId = editingTask?.project?._id || '';
+      const newProjectId = editForm.project || '';
+
+      const payload = {
         title: editForm.title,
         description: editForm.description,
-        project: editForm.project || null,
         assignedTo: selectedEmployee,
         assignedEmployees: [selectedEmployee],
         priority: editForm.priority,
@@ -328,7 +331,15 @@ export default function ManagerTasks() {
 
         githubBranch: editForm.githubBranch,
         githubIssueUrl: editForm.githubIssueUrl,
-      });
+      };
+
+      // include project ONLY if user changed it
+      if (newProjectId !== originalProjectId) {
+        payload.project = newProjectId || null;
+      }
+
+      await API.put(`/tasks/${editingTask._id}`, payload);
+
       toast.success('Task updated!');
       setShowEditModal(false);
       setEditingTask(null);

@@ -118,3 +118,17 @@
   font-size: 12px;
   white-space: nowrap;
 }
+
+.project-ai-btn {
+  margin-top: 8px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #38bdf8;
+  display: inline-flex;
+  align-items: center;
+  background: #0ea5e9;
+  color: #fff;
+}
