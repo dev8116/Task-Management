@@ -385,7 +385,6 @@ exports.updateTaskStatus = async (req, res) => {
 };
 
 // ── POST /api/tasks/:id/submit-completion  (Employee)
-// KEEP FILE UPLOAD + add commit/pr urls
 exports.submitCompletion = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
@@ -405,6 +404,15 @@ exports.submitCompletion = async (req, res) => {
 
     const { githubCommitUrl, githubPullRequestUrl, submissionNote } = req.body;
 
+    // ✅ REQUIRED (commit + PR)
+    if (isEmpty(githubCommitUrl)) {
+      return res.status(400).json({ success: false, message: "GitHub commit URL is required." });
+    }
+    if (isEmpty(githubPullRequestUrl)) {
+      return res.status(400).json({ success: false, message: "GitHub pull request URL is required." });
+    }
+
+    // ✅ Validate formats
     if (!isValidGitHubCommitUrl(githubCommitUrl)) {
       return res.status(400).json({ success: false, message: "Invalid GitHub commit URL." });
     }
@@ -412,7 +420,7 @@ exports.submitCompletion = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid GitHub pull request URL." });
     }
 
-    // ✅ keep existing file upload logic
+    // ✅ OPTIONAL file upload
     if (req.file) {
       task.submissionFile = {
         filename: req.file.filename,
@@ -420,13 +428,15 @@ exports.submitCompletion = async (req, res) => {
         mimetype: req.file.mimetype,
         uploadedAt: new Date(),
       };
-      task.submissionStatus = "pending-approval";
-      task.status = "pending-approval";
     }
 
-    // ✅ new: store commit/pr links from employee
-    if (githubCommitUrl !== undefined) task.githubCommitUrl = normalizeStr(githubCommitUrl);
-    if (githubPullRequestUrl !== undefined) task.githubPullRequestUrl = normalizeStr(githubPullRequestUrl);
+    // ✅ Always move to pending approval when employee submits (even without file)
+    task.submissionStatus = "pending-approval";
+    task.status = "pending-approval";
+
+    // ✅ store commit/pr links from employee (required)
+    task.githubCommitUrl = normalizeStr(githubCommitUrl);
+    task.githubPullRequestUrl = normalizeStr(githubPullRequestUrl);
 
     task.submissionNote = submissionNote || "";
     await task.save();

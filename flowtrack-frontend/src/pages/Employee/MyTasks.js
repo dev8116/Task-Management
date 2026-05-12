@@ -81,9 +81,11 @@ export default function MyTasks() {
 
   // ── Submit completion file + github urls ──
   const handleSubmitCompletion = async () => {
-    // keep old requirement: file is required (you had this before)
-    if (!submitFile) return toast.error("Please select a file to upload");
+    // ✅ REQUIRED: GitHub Commit URL + PR URL
+    if (!String(githubCommitUrl || "").trim()) return toast.error("GitHub commit URL is required");
+    if (!String(githubPullRequestUrl || "").trim()) return toast.error("GitHub pull request URL is required");
 
+    // format validation
     if (!isValidGitHubCommitUrl(githubCommitUrl)) {
       return toast.error("Invalid GitHub commit URL");
     }
@@ -94,9 +96,13 @@ export default function MyTasks() {
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append("submissionFile", submitFile);
 
-      // ✅ add GitHub links
+      // ✅ OPTIONAL file
+      if (submitFile) {
+        formData.append("submissionFile", submitFile);
+      }
+
+      // ✅ required GitHub links
       formData.append("githubCommitUrl", githubCommitUrl);
       formData.append("githubPullRequestUrl", githubPullRequestUrl);
 
@@ -200,7 +206,7 @@ export default function MyTasks() {
           <div className="submit-modal-content">
             <h4>Submit completion for: {submittingTask?.title}</h4>
 
-            <label style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>GitHub Commit URL</label>
+            <label style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>GitHub Commit URL *</label>
             <input
               type="text"
               placeholder="https://github.com/owner/repo/commit/sha"
@@ -208,7 +214,7 @@ export default function MyTasks() {
               onChange={(e) => setGithubCommitUrl(e.target.value)}
             />
 
-            <label style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>GitHub Pull Request URL</label>
+            <label style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>GitHub Pull Request URL *</label>
             <input
               type="text"
               placeholder="https://github.com/owner/repo/pull/123"
@@ -216,7 +222,7 @@ export default function MyTasks() {
               onChange={(e) => setGithubPullRequestUrl(e.target.value)}
             />
 
-            <label style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>Upload File</label>
+            <label style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>Upload File (Optional)</label>
             <input
               type="file"
               accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
