@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "migrate:tasks-v2": "node scripts/migrateTasks_v2.js",
+    "seed:examples": "node scripts/seedExamples.js"
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",

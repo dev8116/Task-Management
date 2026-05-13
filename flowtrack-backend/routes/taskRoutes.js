@@ -10,6 +10,8 @@ const {
   submitCompletion,
   reviewSubmission,
   getSubmissionFile,
+  updateChecklist,
+  updateSubtasks,
 } = require("../controllers/taskController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -40,5 +42,9 @@ router.patch("/:id/review-submission", protect, authorize("manager", "admin"), r
 
 // ── Manager/Admin: view/download submission file ─────────────
 router.get("/:id/submission-file", protect, authorize("manager", "admin"), getSubmissionFile);
+
+// ── Checklist / Subtasks (employee + manager + admin) ───────
+router.patch("/:id/checklist", protect, authorize("employee", "manager", "admin"), updateChecklist);
+router.patch("/:id/subtasks", protect, authorize("employee", "manager", "admin"), updateSubtasks);
 
 module.exports = router;

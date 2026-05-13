@@ -23,6 +23,31 @@ const openLink = (url) => {
   window.open(u, '_blank', 'noopener,noreferrer');
 };
 
+const emptyRecurrence = {
+  enabled: false,
+  frequency: 'daily',
+  interval: 1,
+  daysOfWeek: [],
+  dayOfMonth: '',
+  startDate: '',
+  endDate: '',
+};
+
+const formatRecurrence = (rec) => {
+  if (!rec?.enabled) return '—';
+  if (rec.frequency === 'daily') return `Daily · every ${rec.interval || 1} day(s)`;
+  if (rec.frequency === 'weekly') {
+    const days = (rec.daysOfWeek || [])
+      .map((d) => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d])
+      .join(', ');
+    return `Weekly · every ${rec.interval || 1} week(s) ${days ? `(${days})` : ''}`;
+  }
+  if (rec.frequency === 'monthly') {
+    return `Monthly · day ${rec.dayOfMonth || 1} every ${rec.interval || 1} month(s)`;
+  }
+  return '—';
+};
+
 // ── Demo Task Templates ────────────────────────────────────────────────
 const DEMO_TASKS = [
   { label: '🐛 Bug Fix', title: 'Fix critical bug in production', description: 'Identify and resolve the critical bug reported by the client. Test thoroughly before marking complete.', priority: 'high', status: 'pending' },
@@ -52,6 +77,12 @@ export default function ManagerTasks() {
     // ✅ GitHub fields for manager/admin
     githubBranch: '',
     githubIssueUrl: '',
+
+    // ✅ New fields
+    dependsOn: [],
+    checklist: [],
+    subtasks: [],
+    recurrence: { ...emptyRecurrence },
   });
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [creating, setCreating] = useState(false);
@@ -85,6 +116,12 @@ export default function ManagerTasks() {
     // ✅ GitHub fields
     githubBranch: '',
     githubIssueUrl: '',
+
+    // ✅ New fields
+    dependsOn: [],
+    checklist: [],
+    subtasks: [],
+    recurrence: { ...emptyRecurrence },
   });
   const [editing, setEditing] = useState(false);
 
@@ -121,6 +158,10 @@ export default function ManagerTasks() {
       status: 'pending',
       githubBranch: '',
       githubIssueUrl: '',
+      dependsOn: [],
+      checklist: [],
+      subtasks: [],
+      recurrence: { ...emptyRecurrence },
     });
     setSelectedEmployee('');
     setShowDemoMenu(false);
@@ -167,6 +208,52 @@ export default function ManagerTasks() {
     toast.info(`Template applied: ${demo.label}`);
   };
 
+  const updateChecklist = (setter, index, value) => {
+    setter((prev) => {
+      const next = [...prev.checklist];
+      next[index] = { ...next[index], text: value };
+      return { ...prev, checklist: next };
+    });
+  };
+
+  const addChecklistItem = (setter) => {
+    setter((prev) => ({ ...prev, checklist: [...prev.checklist, { text: '', done: false }] }));
+  };
+
+  const removeChecklistItem = (setter, index) => {
+    setter((prev) => {
+      const next = [...prev.checklist];
+      next.splice(index, 1);
+      return { ...prev, checklist: next };
+    });
+  };
+
+  const updateSubtask = (setter, index, field, value) => {
+    setter((prev) => {
+      const next = [...prev.subtasks];
+      next[index] = { ...next[index], [field]: value };
+      return { ...prev, subtasks: next };
+    });
+  };
+
+  const addSubtask = (setter) => {
+    setter((prev) => ({
+      ...prev,
+      subtasks: [
+        ...prev.subtasks,
+        { title: '', description: '', assignedTo: '', status: 'pending', dueDate: '' },
+      ],
+    }));
+  };
+
+  const removeSubtask = (setter, index) => {
+    setter((prev) => {
+      const next = [...prev.subtasks];
+      next.splice(index, 1);
+      return { ...prev, subtasks: next };
+    });
+  };
+
   // ── Create Task ──
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -180,6 +267,9 @@ export default function ManagerTasks() {
 
     setCreating(true);
     try {
+      const cleanedChecklist = form.checklist.filter((c) => String(c.text || '').trim());
+      const cleanedSubtasks = form.subtasks.filter((s) => String(s.title || '').trim());
+
       await API.post('/tasks', {
         title: form.title,
         description: form.description,
@@ -194,6 +284,12 @@ export default function ManagerTasks() {
         // ✅ GitHub (manager/admin)
         githubBranch: form.githubBranch,
         githubIssueUrl: form.githubIssueUrl,
+
+        // ✅ New fields
+        dependsOn: form.dependsOn,
+        checklist: cleanedChecklist,
+        subtasks: cleanedSubtasks,
+        recurrence: form.recurrence,
       });
       toast.success('Task created successfully!');
       setShowCreateModal(false);
@@ -298,6 +394,28 @@ export default function ManagerTasks() {
 
       githubBranch: task.githubBranch || '',
       githubIssueUrl: task.githubIssueUrl || '',
+
+      dependsOn: (task.dependsOn || []).map((d) => (typeof d === 'object' ? d._id : d)),
+      checklist: (task.checklist || []).map((c) => ({ _id: c._id, text: c.text, done: !!c.done })),
+      subtasks: (task.subtasks || []).map((s) => ({
+        _id: s._id,
+        title: s.title,
+        description: s.description || '',
+        assignedTo: s.assignedTo?._id || s.assignedTo || '',
+        status: s.status || 'pending',
+        dueDate: s.dueDate ? s.dueDate.slice(0, 10) : '',
+      })),
+      recurrence: task.recurrence?.enabled
+        ? {
+            enabled: true,
+            frequency: task.recurrence.frequency || 'daily',
+            interval: task.recurrence.interval || 1,
+            daysOfWeek: task.recurrence.daysOfWeek || [],
+            dayOfMonth: task.recurrence.dayOfMonth || '',
+            startDate: task.recurrence.startDate ? task.recurrence.startDate.slice(0, 10) : '',
+            endDate: task.recurrence.endDate ? task.recurrence.endDate.slice(0, 10) : '',
+          }
+        : { ...emptyRecurrence },
     });
     const cur = task.assignedEmployees?.[0] ?? task.assignedTo;
     setSelectedEmployee(typeof cur === 'object' ? cur?._id ?? '' : cur ?? '');
@@ -331,6 +449,11 @@ export default function ManagerTasks() {
 
         githubBranch: editForm.githubBranch,
         githubIssueUrl: editForm.githubIssueUrl,
+
+        dependsOn: editForm.dependsOn,
+        checklist: editForm.checklist.filter((c) => String(c.text || '').trim()),
+        subtasks: editForm.subtasks.filter((s) => String(s.title || '').trim()),
+        recurrence: editForm.recurrence,
       };
 
       // include project ONLY if user changed it
@@ -437,6 +560,10 @@ export default function ManagerTasks() {
               <th>Priority</th>
               <th>Assigned To</th>
               <th>Deadline</th>
+              <th>Dependencies</th>
+              <th>Subtasks</th>
+              <th>Checklist</th>
+              <th>Recurring</th>
               <th>GitHub</th>
               <th>Submission</th>
               <th>Actions</th>
@@ -447,6 +574,18 @@ export default function ManagerTasks() {
               const empNames = getEmpNames(t);
               const isCompleted = t.status === 'completed';
               const deadline = t.deadline || t.dueDate;
+
+              const blockedBy = (t.dependsOn || []).filter((d) => d.status !== 'completed');
+              const blocking = t.blocking || [];
+              const depSummary = blockedBy.length || blocking.length
+                ? `Blocked by ${blockedBy.length} • Blocking ${blocking.length}`
+                : '—';
+
+              const subtasksTotal = t.subtasks?.length || 0;
+              const subtasksDone = t.subtasks?.filter((s) => s.status === 'completed').length || 0;
+
+              const checklistTotal = t.checklist?.length || 0;
+              const checklistDone = t.checklist?.filter((c) => c.done).length || 0;
 
               return (
                 <tr key={t._id}>
@@ -470,6 +609,10 @@ export default function ManagerTasks() {
                   <td style={{ fontSize: '13px' }}>
                     {deadline ? new Date(deadline).toLocaleDateString() : '—'}
                   </td>
+                  <td title={depSummary}>{depSummary}</td>
+                  <td>{subtasksTotal ? `${subtasksDone}/${subtasksTotal}` : '—'}</td>
+                  <td>{checklistTotal ? `${checklistDone}/${checklistTotal}` : '—'}</td>
+                  <td>{formatRecurrence(t.recurrence)}</td>
 
                   {/* ✅ GitHub buttons */}
                   <td>
@@ -550,7 +693,7 @@ export default function ManagerTasks() {
             })}
             {filteredTasks.length === 0 && (
               <tr>
-                <td colSpan="9" style={{ textAlign: 'center', color: '#aaa', padding: '32px' }}>
+                <td colSpan="13" style={{ textAlign: 'center', color: '#aaa', padding: '32px' }}>
                   {tasks.length === 0 ? 'No tasks yet. Click "Create Task" to add one.' : 'No tasks match the selected filters.'}
                 </td>
               </tr>
@@ -681,6 +824,240 @@ export default function ManagerTasks() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* ✅ Dependencies */}
+              <div className="mgr-form-group">
+                <label>Blocked By (Dependencies)</label>
+                <select
+                  multiple
+                  value={form.dependsOn}
+                  onChange={(e) => {
+                    const values = Array.from(e.target.selectedOptions).map((o) => o.value);
+                    setForm({ ...form, dependsOn: values });
+                  }}
+                >
+                  {tasks.map((t) => (
+                    <option key={t._id} value={t._id}>
+                      {t.title} ({t.status})
+                    </option>
+                  ))}
+                </select>
+                <small className="mgr-hint">Hold Ctrl/Cmd to select multiple tasks.</small>
+              </div>
+
+              {/* ✅ Checklist */}
+              <div className="mgr-form-group">
+                <label>Checklist</label>
+                {form.checklist.map((item, idx) => (
+                  <div key={idx} className="mgr-inline-row">
+                    <input
+                      type="text"
+                      placeholder="Checklist item..."
+                      value={item.text}
+                      onChange={(e) => updateChecklist(setForm, idx, e.target.value)}
+                    />
+                    <button type="button" className="mgrtask-btn btn-danger" onClick={() => removeChecklistItem(setForm, idx)}>
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button type="button" className="mgrtask-btn btn-secondary" onClick={() => addChecklistItem(setForm)}>
+                  + Add Checklist Item
+                </button>
+              </div>
+
+              {/* ✅ Subtasks */}
+              <div className="mgr-form-group">
+                <label>Subtasks</label>
+                {form.subtasks.map((sub, idx) => (
+                  <div key={idx} className="mgr-subtask-card">
+                    <div className="mgr-form-row">
+                      <div className="mgr-form-group">
+                        <label>Title</label>
+                        <input
+                          type="text"
+                          placeholder="Subtask title..."
+                          value={sub.title}
+                          onChange={(e) => updateSubtask(setForm, idx, 'title', e.target.value)}
+                        />
+                      </div>
+                      <div className="mgr-form-group">
+                        <label>Status</label>
+                        <select
+                          value={sub.status}
+                          onChange={(e) => updateSubtask(setForm, idx, 'status', e.target.value)}
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="in-progress">In Progress</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="mgr-form-row">
+                      <div className="mgr-form-group">
+                        <label>Assigned To</label>
+                        <select
+                          value={sub.assignedTo}
+                          onChange={(e) => updateSubtask(setForm, idx, 'assignedTo', e.target.value)}
+                        >
+                          <option value="">-- Optional --</option>
+                          {employees.map((emp) => (
+                            <option key={emp._id} value={emp._id}>
+                              {emp.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="mgr-form-group">
+                        <label>Due Date</label>
+                        <input
+                          type="date"
+                          value={sub.dueDate || ''}
+                          onChange={(e) => updateSubtask(setForm, idx, 'dueDate', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="mgr-form-group">
+                      <label>Description</label>
+                      <textarea
+                        rows={2}
+                        value={sub.description}
+                        onChange={(e) => updateSubtask(setForm, idx, 'description', e.target.value)}
+                      />
+                    </div>
+                    <button type="button" className="mgrtask-btn btn-danger" onClick={() => removeSubtask(setForm, idx)}>
+                      Remove Subtask
+                    </button>
+                  </div>
+                ))}
+                <button type="button" className="mgrtask-btn btn-secondary" onClick={() => addSubtask(setForm)}>
+                  + Add Subtask
+                </button>
+              </div>
+
+              {/* ✅ Recurrence */}
+              <div className="mgr-form-group">
+                <label>Recurring Task</label>
+                <label className="mgr-toggle">
+                  <input
+                    type="checkbox"
+                    checked={form.recurrence.enabled}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        recurrence: { ...form.recurrence, enabled: e.target.checked },
+                      })
+                    }
+                  />
+                  Enable recurrence
+                </label>
+
+                {form.recurrence.enabled && (
+                  <div className="mgr-recurring-grid">
+                    <div className="mgr-form-group">
+                      <label>Frequency</label>
+                      <select
+                        value={form.recurrence.frequency}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            recurrence: { ...form.recurrence, frequency: e.target.value },
+                          })
+                        }
+                      >
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+                    </div>
+                    <div className="mgr-form-group">
+                      <label>Interval</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={form.recurrence.interval}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            recurrence: { ...form.recurrence, interval: e.target.value },
+                          })
+                        }
+                      />
+                    </div>
+
+                    {form.recurrence.frequency === 'weekly' && (
+                      <div className="mgr-form-group">
+                        <label>Days of Week</label>
+                        <div className="mgr-weekdays">
+                          {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d, idx) => (
+                            <label key={d} className="mgr-weekday">
+                              <input
+                                type="checkbox"
+                                checked={form.recurrence.daysOfWeek.includes(idx)}
+                                onChange={(e) => {
+                                  const next = e.target.checked
+                                    ? [...form.recurrence.daysOfWeek, idx]
+                                    : form.recurrence.daysOfWeek.filter((v) => v !== idx);
+                                  setForm({
+                                    ...form,
+                                    recurrence: { ...form.recurrence, daysOfWeek: next },
+                                  });
+                                }}
+                              />
+                              {d}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {form.recurrence.frequency === 'monthly' && (
+                      <div className="mgr-form-group">
+                        <label>Day of Month</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          value={form.recurrence.dayOfMonth}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              recurrence: { ...form.recurrence, dayOfMonth: e.target.value },
+                            })
+                          }
+                        />
+                      </div>
+                    )}
+
+                    <div className="mgr-form-group">
+                      <label>Start Date</label>
+                      <input
+                        type="date"
+                        value={form.recurrence.startDate}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            recurrence: { ...form.recurrence, startDate: e.target.value },
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="mgr-form-group">
+                      <label>End Date (Optional)</label>
+                      <input
+                        type="date"
+                        value={form.recurrence.endDate}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            recurrence: { ...form.recurrence, endDate: e.target.value },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* ✅ GitHub branch + issue */}
@@ -936,6 +1313,242 @@ export default function ManagerTasks() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* ✅ Dependencies */}
+              <div className="mgr-form-group">
+                <label>Blocked By (Dependencies)</label>
+                <select
+                  multiple
+                  value={editForm.dependsOn}
+                  onChange={(e) => {
+                    const values = Array.from(e.target.selectedOptions).map((o) => o.value);
+                    setEditForm({ ...editForm, dependsOn: values });
+                  }}
+                >
+                  {tasks
+                    .filter((t) => t._id !== editingTask._id)
+                    .map((t) => (
+                      <option key={t._id} value={t._id}>
+                        {t.title} ({t.status})
+                      </option>
+                    ))}
+                </select>
+                <small className="mgr-hint">Hold Ctrl/Cmd to select multiple tasks.</small>
+              </div>
+
+              {/* ✅ Checklist */}
+              <div className="mgr-form-group">
+                <label>Checklist</label>
+                {editForm.checklist.map((item, idx) => (
+                  <div key={idx} className="mgr-inline-row">
+                    <input
+                      type="text"
+                      placeholder="Checklist item..."
+                      value={item.text}
+                      onChange={(e) => updateChecklist(setEditForm, idx, e.target.value)}
+                    />
+                    <button type="button" className="mgrtask-btn btn-danger" onClick={() => removeChecklistItem(setEditForm, idx)}>
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button type="button" className="mgrtask-btn btn-secondary" onClick={() => addChecklistItem(setEditForm)}>
+                  + Add Checklist Item
+                </button>
+              </div>
+
+              {/* ✅ Subtasks */}
+              <div className="mgr-form-group">
+                <label>Subtasks</label>
+                {editForm.subtasks.map((sub, idx) => (
+                  <div key={idx} className="mgr-subtask-card">
+                    <div className="mgr-form-row">
+                      <div className="mgr-form-group">
+                        <label>Title</label>
+                        <input
+                          type="text"
+                          placeholder="Subtask title..."
+                          value={sub.title}
+                          onChange={(e) => updateSubtask(setEditForm, idx, 'title', e.target.value)}
+                        />
+                      </div>
+                      <div className="mgr-form-group">
+                        <label>Status</label>
+                        <select
+                          value={sub.status}
+                          onChange={(e) => updateSubtask(setEditForm, idx, 'status', e.target.value)}
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="in-progress">In Progress</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="mgr-form-row">
+                      <div className="mgr-form-group">
+                        <label>Assigned To</label>
+                        <select
+                          value={sub.assignedTo}
+                          onChange={(e) => updateSubtask(setEditForm, idx, 'assignedTo', e.target.value)}
+                        >
+                          <option value="">-- Optional --</option>
+                          {employees.map((emp) => (
+                            <option key={emp._id} value={emp._id}>
+                              {emp.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="mgr-form-group">
+                        <label>Due Date</label>
+                        <input
+                          type="date"
+                          value={sub.dueDate || ''}
+                          onChange={(e) => updateSubtask(setEditForm, idx, 'dueDate', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="mgr-form-group">
+                      <label>Description</label>
+                      <textarea
+                        rows={2}
+                        value={sub.description}
+                        onChange={(e) => updateSubtask(setEditForm, idx, 'description', e.target.value)}
+                      />
+                    </div>
+                    <button type="button" className="mgrtask-btn btn-danger" onClick={() => removeSubtask(setEditForm, idx)}>
+                      Remove Subtask
+                    </button>
+                  </div>
+                ))}
+                <button type="button" className="mgrtask-btn btn-secondary" onClick={() => addSubtask(setEditForm)}>
+                  + Add Subtask
+                </button>
+              </div>
+
+              {/* ✅ Recurrence */}
+              <div className="mgr-form-group">
+                <label>Recurring Task</label>
+                <label className="mgr-toggle">
+                  <input
+                    type="checkbox"
+                    checked={editForm.recurrence.enabled}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        recurrence: { ...editForm.recurrence, enabled: e.target.checked },
+                      })
+                    }
+                  />
+                  Enable recurrence
+                </label>
+
+                {editForm.recurrence.enabled && (
+                  <div className="mgr-recurring-grid">
+                    <div className="mgr-form-group">
+                      <label>Frequency</label>
+                      <select
+                        value={editForm.recurrence.frequency}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            recurrence: { ...editForm.recurrence, frequency: e.target.value },
+                          })
+                        }
+                      >
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+                    </div>
+                    <div className="mgr-form-group">
+                      <label>Interval</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={editForm.recurrence.interval}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            recurrence: { ...editForm.recurrence, interval: e.target.value },
+                          })
+                        }
+                      />
+                    </div>
+
+                    {editForm.recurrence.frequency === 'weekly' && (
+                      <div className="mgr-form-group">
+                        <label>Days of Week</label>
+                        <div className="mgr-weekdays">
+                          {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d, idx) => (
+                            <label key={d} className="mgr-weekday">
+                              <input
+                                type="checkbox"
+                                checked={editForm.recurrence.daysOfWeek.includes(idx)}
+                                onChange={(e) => {
+                                  const next = e.target.checked
+                                    ? [...editForm.recurrence.daysOfWeek, idx]
+                                    : editForm.recurrence.daysOfWeek.filter((v) => v !== idx);
+                                  setEditForm({
+                                    ...editForm,
+                                    recurrence: { ...editForm.recurrence, daysOfWeek: next },
+                                  });
+                                }}
+                              />
+                              {d}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {editForm.recurrence.frequency === 'monthly' && (
+                      <div className="mgr-form-group">
+                        <label>Day of Month</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          value={editForm.recurrence.dayOfMonth}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              recurrence: { ...editForm.recurrence, dayOfMonth: e.target.value },
+                            })
+                          }
+                        />
+                      </div>
+                    )}
+
+                    <div className="mgr-form-group">
+                      <label>Start Date</label>
+                      <input
+                        type="date"
+                        value={editForm.recurrence.startDate}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            recurrence: { ...editForm.recurrence, startDate: e.target.value },
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="mgr-form-group">
+                      <label>End Date (Optional)</label>
+                      <input
+                        type="date"
+                        value={editForm.recurrence.endDate}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            recurrence: { ...editForm.recurrence, endDate: e.target.value },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* ✅ GitHub branch + issue */}

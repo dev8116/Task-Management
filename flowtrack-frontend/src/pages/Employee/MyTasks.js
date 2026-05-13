@@ -19,6 +19,21 @@ const openLink = (url) => {
   window.open(u, '_blank', 'noopener,noreferrer');
 };
 
+const formatRecurrence = (rec) => {
+  if (!rec?.enabled) return '—';
+  if (rec.frequency === 'daily') return `Daily · every ${rec.interval || 1} day(s)`;
+  if (rec.frequency === 'weekly') {
+    const days = (rec.daysOfWeek || [])
+      .map((d) => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d])
+      .join(', ');
+    return `Weekly · every ${rec.interval || 1} week(s) ${days ? `(${days})` : ''}`;
+  }
+  if (rec.frequency === 'monthly') {
+    return `Monthly · day ${rec.dayOfMonth || 1} every ${rec.interval || 1} month(s)`;
+  }
+  return '—';
+};
+
 export default function MyTasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +60,24 @@ export default function MyTasks() {
       toast.error(err?.response?.data?.message || "Failed to load tasks");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateChecklist = async (taskId, checklist) => {
+    try {
+      await api.patch(`/tasks/${taskId}/checklist`, { checklist });
+      fetchTasks();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to update checklist");
+    }
+  };
+
+  const updateSubtasks = async (taskId, subtasks) => {
+    try {
+      await api.patch(`/tasks/${taskId}/subtasks`, { subtasks });
+      fetchTasks();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to update subtasks");
     }
   };
 
@@ -130,73 +163,171 @@ export default function MyTasks() {
         <p className="mytasks-empty">No tasks assigned to you yet.</p>
       ) : (
         <div className="mytasks-list">
-          {tasks.map((task) => (
-            <div key={task._id} className={`mytask-card status-${task.status}`}>
-              {/* Header */}
-              <div className="mytask-card-header">
-                <span className="mytask-title">{task.title}</span>
-                <span className={`mytask-badge badge-${task.status}`}>
-                  {task.status === "pending-approval" ? "Pending Approval" : task.status}
-                </span>
-              </div>
+          {tasks.map((task) => {
+            const blockedBy = (task.dependsOn || []).filter((d) => d.status !== "completed");
+            const blocking = task.blocking || [];
+            const isBlocked = blockedBy.length > 0;
 
-              {/* Description */}
-              {task.description && <p className="mytask-desc">{task.description}</p>}
+            const checklistTotal = task.checklist?.length || 0;
+            const checklistDone = task.checklist?.filter((c) => c.done).length || 0;
 
-              {/* Meta */}
-              <div className="mytask-meta">
-                <span className={`priority-badge priority-${task.priority || "medium"}`}>
-                  {task.priority || "medium"}
-                </span>
-                {task.dueDate && (
-                  <span role="img" aria-label="due">
-                    📅 Due: {new Date(task.dueDate).toLocaleDateString()}
+            const subtasksTotal = task.subtasks?.length || 0;
+            const subtasksDone = task.subtasks?.filter((s) => s.status === "completed").length || 0;
+
+            return (
+              <div key={task._id} className={`mytask-card status-${task.status}`}>
+                {/* Header */}
+                <div className="mytask-card-header">
+                  <span className="mytask-title">{task.title}</span>
+                  <span className={`mytask-badge badge-${task.status}`}>
+                    {task.status === "pending-approval" ? "Pending Approval" : task.status}
                   </span>
+                </div>
+
+                {/* Description */}
+                {task.description && <p className="mytask-desc">{task.description}</p>}
+
+                {/* Meta */}
+                <div className="mytask-meta">
+                  <span className={`priority-badge priority-${task.priority || "medium"}`}>
+                    {task.priority || "medium"}
+                  </span>
+                  {task.dueDate && (
+                    <span role="img" aria-label="due">
+                      📅 Due: {new Date(task.dueDate).toLocaleDateString()}
+                    </span>
+                  )}
+                  {task.project?.name && <span>Project: {task.project.name}</span>}
+                </div>
+
+                {/* Dependencies */}
+                <div className="mytask-section">
+                  <h4>Dependencies</h4>
+                  {blockedBy.length === 0 ? (
+                    <p className="mytask-muted">No blocking tasks.</p>
+                  ) : (
+                    <ul className="mytask-list">
+                      {blockedBy.map((d) => (
+                        <li key={d._id}>⛔ {d.title} ({d.status})</li>
+                      ))}
+                    </ul>
+                  )}
+                  {blocking.length > 0 && (
+                    <>
+                      <h5>Blocking</h5>
+                      <ul className="mytask-list">
+                        {blocking.map((d) => (
+                          <li key={d._id}>✅ {d.title} ({d.status})</li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+
+                {/* Subtasks */}
+                {subtasksTotal > 0 && (
+                  <div className="mytask-section">
+                    <h4>Subtasks ({subtasksDone}/{subtasksTotal})</h4>
+                    {task.subtasks.map((sub) => (
+                      <div key={sub._id} className="mytask-subtask">
+                        <div>
+                          <strong>{sub.title}</strong>
+                          {sub.description && <p>{sub.description}</p>}
+                        </div>
+                        <select
+                          value={sub.status}
+                          disabled={task.status === "completed"}
+                          onChange={(e) => {
+                            const updated = task.subtasks.map((s) =>
+                              s._id === sub._id ? { ...s, status: e.target.value } : s
+                            );
+                            updateSubtasks(task._id, updated);
+                          }}
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="in-progress">In Progress</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                      </div>
+                    ))}
+                  </div>
                 )}
-                {task.project?.name && <span>Project: {task.project.name}</span>}
-              </div>
 
-              {/* GitHub buttons (employee view) */}
-              <div className="mytask-meta">
-                {task.project?.githubRepoUrl ? (
-                  <button className="mytasks-linkbtn" onClick={() => openLink(task.project.githubRepoUrl)}>
-                    View Repository
-                  </button>
-                ) : null}
-
-                {task.githubIssueUrl ? (
-                  <button className="mytasks-linkbtn" onClick={() => openLink(task.githubIssueUrl)}>
-                    View Issue
-                  </button>
-                ) : null}
-
-                {task.githubCommitUrl ? (
-                  <button className="mytasks-linkbtn" onClick={() => openLink(task.githubCommitUrl)}>
-                    View Commit
-                  </button>
-                ) : null}
-
-                {task.githubPullRequestUrl ? (
-                  <button className="mytasks-linkbtn" onClick={() => openLink(task.githubPullRequestUrl)}>
-                    View Pull Request
-                  </button>
-                ) : null}
-              </div>
-
-              {/* Actions (toggle or submit) */}
-              <div className="mytask-actions">
-                {task.status === "pending" && (
-                  <button onClick={() => handleStatusToggle(task._id, "in-progress")}>Start</button>
+                {/* Checklist */}
+                {checklistTotal > 0 && (
+                  <div className="mytask-section">
+                    <h4>Checklist ({checklistDone}/{checklistTotal})</h4>
+                    {task.checklist.map((item) => (
+                      <label key={item._id} className="mytask-check">
+                        <input
+                          type="checkbox"
+                          checked={item.done}
+                          disabled={task.status === "completed"}
+                          onChange={() => {
+                            const updated = task.checklist.map((c) =>
+                              c._id === item._id ? { ...c, done: !c.done } : c
+                            );
+                            updateChecklist(task._id, updated);
+                          }}
+                        />
+                        <span className={item.done ? "done" : ""}>{item.text}</span>
+                      </label>
+                    ))}
+                  </div>
                 )}
-                {task.status === "in-progress" && (
-                  <>
-                    <button onClick={() => handleStatusToggle(task._id, "pending")}>Mark Pending</button>
-                    <button onClick={() => openSubmitModal(task)}>Submit Work</button>
-                  </>
-                )}
+
+                {/* Recurrence */}
+                <div className="mytask-section">
+                  <h4>Recurring</h4>
+                  <p className="mytask-muted">{formatRecurrence(task.recurrence)}</p>
+                </div>
+
+                {/* GitHub buttons (employee view) */}
+                <div className="mytask-meta">
+                  {task.project?.githubRepoUrl ? (
+                    <button className="mytasks-linkbtn" onClick={() => openLink(task.project.githubRepoUrl)}>
+                      View Repository
+                    </button>
+                  ) : null}
+
+                  {task.githubIssueUrl ? (
+                    <button className="mytasks-linkbtn" onClick={() => openLink(task.githubIssueUrl)}>
+                      View Issue
+                    </button>
+                  ) : null}
+
+                  {task.githubCommitUrl ? (
+                    <button className="mytasks-linkbtn" onClick={() => openLink(task.githubCommitUrl)}>
+                      View Commit
+                    </button>
+                  ) : null}
+
+                  {task.githubPullRequestUrl ? (
+                    <button className="mytasks-linkbtn" onClick={() => openLink(task.githubPullRequestUrl)}>
+                      View Pull Request
+                    </button>
+                  ) : null}
+                </div>
+
+                {/* Actions (toggle or submit) */}
+                <div className="mytask-actions">
+                  {task.status === "pending" && (
+                    <button onClick={() => handleStatusToggle(task._id, "in-progress")} disabled={isBlocked}>
+                      {isBlocked ? "Blocked" : "Start"}
+                    </button>
+                  )}
+                  {task.status === "in-progress" && (
+                    <>
+                      <button onClick={() => handleStatusToggle(task._id, "pending")}>Mark Pending</button>
+                      <button onClick={() => openSubmitModal(task)} disabled={isBlocked}>
+                        {isBlocked ? "Blocked" : "Submit Work"}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
