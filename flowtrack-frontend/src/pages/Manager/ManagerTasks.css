@@ -236,3 +236,99 @@
   transition: background 0.12s;
 }
 .demo-dropdown-item:hover { background: #f1f5f9; color: #1e293b; }
+/* ✅ Popup overlay: allow scroll on small screens */
+.mgr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 999;
+  overflow-y: auto;
+  padding: 28px 14px;
+}
+
+/* ✅ Modal box: scrollable content */
+.mgr-modal-box {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 640px;
+  box-shadow: 0 18px 48px rgba(0,0,0,0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Wider create modal */
+.mgr-modal-lg {
+  max-width: 900px;
+}
+
+/* ✅ Header and body spacing */
+.mgr-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.mgr-modal-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.mgr-modal-body {
+  padding: 22px;
+  max-height: 75vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ✅ Subtask / checklist card style */
+.mgr-subtask-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: #f8fafc;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+/* ✅ Buttons: rounded + responsive */
+.mgrtask-btn {
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.mgrtask-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+}
+
+/* ✅ Responsive form rows */
+.mgr-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .mgr-form-row {
+    grid-template-columns: 1fr;
+  }
+  .mgr-modal-body {
+    max-height: 70vh;
+  }
+}

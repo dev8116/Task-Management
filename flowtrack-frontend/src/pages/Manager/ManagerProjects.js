@@ -55,7 +55,6 @@ const ManagerProjects = () => {
     e.preventDefault();
     if (!editing) return;
 
-    // Manager cannot perform Planning -> Closed/Cancelled
     if (editing.status === 'Planning' && ['Closed', 'Cancelled'].includes(form.status)) {
       toast.error('Only admin can close/cancel a Planning project.');
       return;
@@ -156,62 +155,67 @@ const ManagerProjects = () => {
       )}
 
       {editModal && (
-        <div className="modal-overlay" onClick={() => setEditModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Update Project</h3>
-            <form onSubmit={handleUpdate}>
-              <div className="form-group">
-                <label>Project Name</label>
-                <input name="name" value={form.name} onChange={handleChange} required />
-              </div>
-              <div className="form-group">
-                <label>Description</label>
-                <textarea
-                  name="description"
-                  rows={3}
-                  value={form.description}
-                  onChange={handleChange}
-                  placeholder="Update description"
-                />
-              </div>
-              <div className="form-row">
+        <div className="ft-modal-overlay" onClick={() => setEditModal(false)}>
+          <div className="ft-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ft-modal-header">
+              <h3>Update Project</h3>
+              <button className="ft-modal-close" onClick={() => setEditModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleUpdate} className="ft-modal-form">
+              <div className="ft-modal-body">
                 <div className="form-group">
-                  <label>Priority</label>
-                  <select name="priority" value={form.priority} onChange={handleChange}>
-                    {PRIORITY_OPTIONS.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
+                  <label>Project Name</label>
+                  <input name="name" value={form.name} onChange={handleChange} required />
                 </div>
                 <div className="form-group">
-                  <label>Status</label>
-                  <select name="status" value={form.status} onChange={handleChange}>
-                    {filteredStatusOptions.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                  {editing?.status === 'Planning' && (
-                    <small style={{ color: '#c00' }}>
-                      Only admin can move Planning → Closed/Cancelled.
-                    </small>
-                  )}
+                  <label>Description</label>
+                  <textarea
+                    name="description"
+                    rows={3}
+                    value={form.description}
+                    onChange={handleChange}
+                    placeholder="Update description"
+                  />
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Priority</label>
+                    <select name="priority" value={form.priority} onChange={handleChange}>
+                      {PRIORITY_OPTIONS.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Status</label>
+                    <select name="status" value={form.status} onChange={handleChange}>
+                      {filteredStatusOptions.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                    {editing?.status === 'Planning' && (
+                      <small style={{ color: '#c00' }}>
+                        Only admin can move Planning → Closed/Cancelled.
+                      </small>
+                    )}
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Start Date</label>
+                    <input name="startDate" type="date" value={form.startDate} onChange={handleChange} />
+                  </div>
+                  <div className="form-group">
+                    <label>Deadline</label>
+                    <input name="endDate" type="date" value={form.endDate} onChange={handleChange} />
+                  </div>
                 </div>
               </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Start Date</label>
-                  <input name="startDate" type="date" value={form.startDate} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                  <label>Deadline</label>
-                  <input name="endDate" type="date" value={form.endDate} onChange={handleChange} />
-                </div>
-              </div>
-              <div className="modal-actions">
+              <div className="ft-modal-footer">
                 <button type="button" className="btn-cancel" onClick={() => setEditModal(false)}>
                   Cancel
                 </button>

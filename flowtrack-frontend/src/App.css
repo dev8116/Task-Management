@@ -17,3 +17,112 @@
     padding: 70px 12px 12px;
   }
 }
+
+/* ── Global Modal System ───────────────────────────────────── */
+.ft-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+.ft-modal {
+  width: min(720px, 96vw);
+  max-height: 90vh;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dark .ft-modal {
+  background: #1e1e2f;
+  color: #e0e0e0;
+}
+
+.ft-modal-lg { max-width: 900px; }
+.ft-modal-sm { max-width: 520px; }
+
+.ft-modal-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.ft-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.ft-modal-close {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #64748b;
+}
+
+.ft-modal-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.ft-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.ft-modal-footer {
+  padding: 14px 20px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 0 auto;
+  background: inherit;
+}
+
+/* Optional: custom scrollbar */
+.ft-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+.ft-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ft-modal-body::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.5);
+  border-radius: 999px;
+}
+.ft-modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .ft-modal {
+    width: 100%;
+    border-radius: 14px;
+  }
+  .ft-modal-header,
+  .ft-modal-body,
+  .ft-modal-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

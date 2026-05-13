@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import API from '../../api/axios';
 import DataTable from '../../components/Common/DataTable';
 import { toast } from 'react-toastify';
-import { FiPlus, FiUsers } from 'react-icons/fi';
+import { FiPlus, FiUsers, FiX } from 'react-icons/fi';
 import './UserManagement.css';
 
 const UserManagement = () => {
@@ -32,7 +32,6 @@ const UserManagement = () => {
     const { name, value } = e.target;
     setForm((prev) => {
       const newForm = { ...prev, [name]: value };
-      // Clear manager selection if role is not employee
       if (name === 'role' && value !== 'employee') {
         newForm.manager = '';
       }
@@ -165,57 +164,60 @@ const UserManagement = () => {
       />
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{editingUser ? 'Edit User' : 'Create New User'}</h3>
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Full Name</label>
-                <input name="name" value={form.name} onChange={handleChange} placeholder="Enter full name" required />
-              </div>
-              <div className="form-group">
-                <label>Email Address</label>
-                <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="Enter email" required />
-              </div>
-              <div className="form-group">
-                <label>Password {editingUser && '(leave blank to keep current)'}</label>
-                <input name="password" type="password" value={form.password} onChange={handleChange}
-                  placeholder={editingUser ? 'Leave blank to keep current' : 'Enter password'}
-                  required={!editingUser} />
-              </div>
-              <div className="form-row">
+        <div className="ft-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="ft-modal ft-modal-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="ft-modal-header">
+              <h3>{editingUser ? 'Edit User' : 'Create New User'}</h3>
+              <button className="ft-modal-close" onClick={() => setShowModal(false)}><FiX /></button>
+            </div>
+            <form onSubmit={handleSubmit} className="ft-modal-form">
+              <div className="ft-modal-body">
                 <div className="form-group">
-                  <label>Role</label>
-                  <select name="role" value={form.role} onChange={handleChange}>
-                    <option value="employee">Employee</option>
-                    <option value="manager">Manager</option>
-                    {/* <option value="admin">Admin</option> */}
-                  </select>
+                  <label>Full Name</label>
+                  <input name="name" value={form.name} onChange={handleChange} placeholder="Enter full name" required />
                 </div>
                 <div className="form-group">
-                  <label>Department</label>
-                  <input name="department" value={form.department} onChange={handleChange} placeholder="Department" />
+                  <label>Email Address</label>
+                  <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="Enter email" required />
                 </div>
-              </div>
+                <div className="form-group">
+                  <label>Password {editingUser && '(leave blank to keep current)'}</label>
+                  <input name="password" type="password" value={form.password} onChange={handleChange}
+                    placeholder={editingUser ? 'Leave blank to keep current' : 'Enter password'}
+                    required={!editingUser} />
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Role</label>
+                    <select name="role" value={form.role} onChange={handleChange}>
+                      <option value="employee">Employee</option>
+                      <option value="manager">Manager</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Department</label>
+                    <input name="department" value={form.department} onChange={handleChange} placeholder="Department" />
+                  </div>
+                </div>
 
-              {/* Manager Dropdown - Only shown for employees */}
-              {form.role === 'employee' && (
-                <div className="form-group">
-                  <label>Assign Manager *</label>
-                  <select name="manager" value={form.manager} onChange={handleChange} required>
-                    <option value="">-- Select a Manager --</option>
-                    {managers.map((m) => (
-                      <option key={m._id} value={m._id}>{m.name} ({m.department || 'No Dept'})</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+                {form.role === 'employee' && (
+                  <div className="form-group">
+                    <label>Assign Manager *</label>
+                    <select name="manager" value={form.manager} onChange={handleChange} required>
+                      <option value="">-- Select a Manager --</option>
+                      {managers.map((m) => (
+                        <option key={m._id} value={m._id}>{m.name} ({m.department || 'No Dept'})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-              <div className="form-group">
-                <label>Phone</label>
-                <input name="phone" value={form.phone} onChange={handleChange} placeholder="Phone number" />
+                <div className="form-group">
+                  <label>Phone</label>
+                  <input name="phone" value={form.phone} onChange={handleChange} placeholder="Phone number" />
+                </div>
               </div>
-              <div className="modal-actions">
+              <div className="ft-modal-footer">
                 <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>Cancel</button>
                 <button type="submit" className="btn-save">{editingUser ? 'Update' : 'Create'}</button>
               </div>

@@ -38,13 +38,11 @@ export default function MyTasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ── Submit Completion Modal ──
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submittingTask, setSubmittingTask] = useState(null);
   const [submitFile, setSubmitFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // ✅ GitHub fields employee submits
   const [githubCommitUrl, setGithubCommitUrl] = useState("");
   const [githubPullRequestUrl, setGithubPullRequestUrl] = useState("");
 
@@ -81,7 +79,6 @@ export default function MyTasks() {
     }
   };
 
-  // ── Toggle: pending ↔ in-progress ──
   const handleStatusToggle = async (taskId, newStatus) => {
     try {
       await api.patch(`/tasks/${taskId}/status`, { status: newStatus });
@@ -92,15 +89,11 @@ export default function MyTasks() {
     }
   };
 
-  // ── Open / close submit modal ──
   const openSubmitModal = (task) => {
     setSubmittingTask(task);
     setSubmitFile(null);
-
-    // preload existing values if resubmitting
     setGithubCommitUrl(task.githubCommitUrl || "");
     setGithubPullRequestUrl(task.githubPullRequestUrl || "");
-
     setShowSubmitModal(true);
   };
 
@@ -112,13 +105,10 @@ export default function MyTasks() {
     setGithubPullRequestUrl("");
   };
 
-  // ── Submit completion file + github urls ──
   const handleSubmitCompletion = async () => {
-    // ✅ REQUIRED: GitHub Commit URL + PR URL
     if (!String(githubCommitUrl || "").trim()) return toast.error("GitHub commit URL is required");
     if (!String(githubPullRequestUrl || "").trim()) return toast.error("GitHub pull request URL is required");
 
-    // format validation
     if (!isValidGitHubCommitUrl(githubCommitUrl)) {
       return toast.error("Invalid GitHub commit URL");
     }
@@ -130,12 +120,10 @@ export default function MyTasks() {
     try {
       const formData = new FormData();
 
-      // ✅ OPTIONAL file
       if (submitFile) {
         formData.append("submissionFile", submitFile);
       }
 
-      // ✅ required GitHub links
       formData.append("githubCommitUrl", githubCommitUrl);
       formData.append("githubPullRequestUrl", githubPullRequestUrl);
 
@@ -176,7 +164,6 @@ export default function MyTasks() {
 
             return (
               <div key={task._id} className={`mytask-card status-${task.status}`}>
-                {/* Header */}
                 <div className="mytask-card-header">
                   <span className="mytask-title">{task.title}</span>
                   <span className={`mytask-badge badge-${task.status}`}>
@@ -184,10 +171,8 @@ export default function MyTasks() {
                   </span>
                 </div>
 
-                {/* Description */}
                 {task.description && <p className="mytask-desc">{task.description}</p>}
 
-                {/* Meta */}
                 <div className="mytask-meta">
                   <span className={`priority-badge priority-${task.priority || "medium"}`}>
                     {task.priority || "medium"}
@@ -200,7 +185,6 @@ export default function MyTasks() {
                   {task.project?.name && <span>Project: {task.project.name}</span>}
                 </div>
 
-                {/* Dependencies */}
                 <div className="mytask-section">
                   <h4>Dependencies</h4>
                   {blockedBy.length === 0 ? (
@@ -224,7 +208,6 @@ export default function MyTasks() {
                   )}
                 </div>
 
-                {/* Subtasks */}
                 {subtasksTotal > 0 && (
                   <div className="mytask-section">
                     <h4>Subtasks ({subtasksDone}/{subtasksTotal})</h4>
@@ -253,7 +236,6 @@ export default function MyTasks() {
                   </div>
                 )}
 
-                {/* Checklist */}
                 {checklistTotal > 0 && (
                   <div className="mytask-section">
                     <h4>Checklist ({checklistDone}/{checklistTotal})</h4>
@@ -276,13 +258,11 @@ export default function MyTasks() {
                   </div>
                 )}
 
-                {/* Recurrence */}
                 <div className="mytask-section">
                   <h4>Recurring</h4>
                   <p className="mytask-muted">{formatRecurrence(task.recurrence)}</p>
                 </div>
 
-                {/* GitHub buttons (employee view) */}
                 <div className="mytask-meta">
                   {task.project?.githubRepoUrl ? (
                     <button className="mytasks-linkbtn" onClick={() => openLink(task.project.githubRepoUrl)}>
@@ -309,7 +289,6 @@ export default function MyTasks() {
                   ) : null}
                 </div>
 
-                {/* Actions (toggle or submit) */}
                 <div className="mytask-actions">
                   {task.status === "pending" && (
                     <button onClick={() => handleStatusToggle(task._id, "in-progress")} disabled={isBlocked}>
@@ -331,41 +310,48 @@ export default function MyTasks() {
         </div>
       )}
 
-      {/* Submit modal */}
       {showSubmitModal && (
-        <div className="submit-modal">
-          <div className="submit-modal-content">
-            <h4>Submit completion for: {submittingTask?.title}</h4>
+        <div className="ft-modal-overlay" onClick={closeSubmitModal}>
+          <div className="ft-modal ft-modal-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="ft-modal-header">
+              <h3>Submit completion</h3>
+              <button className="ft-modal-close" onClick={closeSubmitModal}>✕</button>
+            </div>
+            <div className="ft-modal-body">
+              <p className="ft-modal-subtitle">{submittingTask?.title}</p>
 
-            <label style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>GitHub Commit URL *</label>
-            <input
-              type="text"
-              placeholder="https://github.com/owner/repo/commit/sha"
-              value={githubCommitUrl}
-              onChange={(e) => setGithubCommitUrl(e.target.value)}
-            />
+              <label className="ft-modal-label">GitHub Commit URL *</label>
+              <input
+                className="ft-modal-input"
+                type="text"
+                placeholder="https://github.com/owner/repo/commit/sha"
+                value={githubCommitUrl}
+                onChange={(e) => setGithubCommitUrl(e.target.value)}
+              />
 
-            <label style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>GitHub Pull Request URL *</label>
-            <input
-              type="text"
-              placeholder="https://github.com/owner/repo/pull/123"
-              value={githubPullRequestUrl}
-              onChange={(e) => setGithubPullRequestUrl(e.target.value)}
-            />
+              <label className="ft-modal-label">GitHub Pull Request URL *</label>
+              <input
+                className="ft-modal-input"
+                type="text"
+                placeholder="https://github.com/owner/repo/pull/123"
+                value={githubPullRequestUrl}
+                onChange={(e) => setGithubPullRequestUrl(e.target.value)}
+              />
 
-            <label style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>Upload File (Optional)</label>
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-              onChange={(e) => setSubmitFile(e.target.files[0])}
-            />
-
-            <div className="modal-actions">
-              <button className="btn-primary" disabled={submitting} onClick={handleSubmitCompletion}>
-                {submitting ? "Uploading..." : "Submit"}
-              </button>
+              <label className="ft-modal-label">Upload File (Optional)</label>
+              <input
+                className="ft-modal-input"
+                type="file"
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                onChange={(e) => setSubmitFile(e.target.files[0])}
+              />
+            </div>
+            <div className="ft-modal-footer">
               <button className="btn-secondary" onClick={closeSubmitModal}>
                 Cancel
+              </button>
+              <button className="btn-primary" disabled={submitting} onClick={handleSubmitCompletion}>
+                {submitting ? "Uploading..." : "Submit"}
               </button>
             </div>
           </div>

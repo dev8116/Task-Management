@@ -1,36 +1,5 @@
-.svm-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  padding: 14px; /* allow spacing on small screens */
-}
-
-/* Modal is scrollable inside so buttons remain reachable */
 .svm-modal {
   width: min(720px, 96vw);
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
-
-  /* ✅ key for mobile: do not overflow screen */
-  max-height: min(92vh, 820px);
-  overflow: auto;
-
-  /* smoother scrolling */
-  -webkit-overflow-scrolling: touch;
-
-  /* layout so actions can be sticky */
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.svm-modal h3 {
-  margin: 0;
 }
 
 .svm-warning {
@@ -41,7 +10,7 @@
 }
 
 .svm-deadline {
-  margin: 0;
+  margin: 0 0 12px;
   color: #444;
   font-size: 14px;
 }
@@ -57,8 +26,6 @@
   width: 100%;
   border-radius: 10px;
   background: #111;
-
-  /* ✅ responsive height */
   max-height: 42vh;
   min-height: 180px;
   object-fit: cover;
@@ -77,21 +44,12 @@
   object-fit: cover;
 }
 
-/* ✅ Sticky actions so user always sees verify/skip buttons */
+/* Buttons */
 .svm-actions {
-  margin-top: auto;
-  position: sticky;
-  bottom: 0;
-
-  background: #fff;
-  padding-top: 12px;
-  padding-bottom: 2px;
-
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  flex-wrap: wrap; /* ✅ wrap on small screens */
-  border-top: 1px solid #f1f1f1;
+  flex-wrap: wrap;
 }
 
 .svm-btn {
@@ -120,14 +78,8 @@
   cursor: not-allowed;
 }
 
-/* ✅ Mobile adjustments */
+/* Mobile adjustments */
 @media (max-width: 480px) {
-  .svm-modal {
-    width: 100%;
-    padding: 14px;
-    border-radius: 12px;
-  }
-
   .svm-actions {
     justify-content: stretch;
   }
@@ -135,14 +87,5 @@
   .svm-btn {
     flex: 1;
     min-width: 140px;
-  }
-}
-
-/* ✅ Small height screens (common phone landscape) */
-@media (max-height: 650px) {
-  .svm-video,
-  .svm-preview {
-    max-height: 32vh;
-    min-height: 140px;
   }
 }

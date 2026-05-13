@@ -121,35 +121,36 @@ const SelfieVerificationModal = ({ open, check, onVerified, onFailedOrMissed }) 
   const deadlineText = check.responseDeadline ? new Date(check.responseDeadline).toLocaleTimeString() : '';
 
   return (
-    <div className="svm-backdrop">
-      <div className="svm-modal" role="dialog" aria-modal="true">
-        <h3>Selfie Verification Required</h3>
-        <p className="svm-warning">
-          Please take selfie within 2 minutes. You can miss 1 time. On the 2nd miss you will be automatically checked out.
-        </p>
-        <p className="svm-deadline">Deadline: {deadlineText}</p>
-
-        <div className="svm-camera">
-          <video ref={videoRef} className="svm-video" />
-          <canvas ref={canvasRef} className="svm-canvas" />
-          {selfiePreview ? <img className="svm-preview" src={selfiePreview} alt="Selfie preview" /> : null}
+    <div className="ft-modal-overlay">
+      <div className="ft-modal ft-modal-lg svm-modal" role="dialog" aria-modal="true">
+        <div className="ft-modal-header">
+          <h3>Selfie Verification Required</h3>
         </div>
 
-        <div className="svm-actions">
+        <div className="ft-modal-body">
+          <p className="svm-warning">
+            Please take selfie within 2 minutes. You can miss 1 time. On the 2nd miss you will be automatically checked out.
+          </p>
+          <p className="svm-deadline">Deadline: {deadlineText}</p>
+
+          <div className="svm-camera">
+            <video ref={videoRef} className="svm-video" />
+            <canvas ref={canvasRef} className="svm-canvas" />
+            {selfiePreview ? <img className="svm-preview" src={selfiePreview} alt="Selfie preview" /> : null}
+          </div>
+        </div>
+
+        <div className="ft-modal-footer svm-actions">
           <button className="svm-btn" onClick={captureSelfie} disabled={loading}>
             Capture Selfie
           </button>
           <button className="svm-btn primary" onClick={submit} disabled={loading || !selfieBlob}>
             {loading ? 'Verifying...' : 'Submit & Verify'}
           </button>
-
-          {/* ✅ Skip button (counts as miss) */}
           <button className="svm-btn danger" onClick={skip} disabled={loading}>
             Skip
           </button>
         </div>
-
-        {/* No close button (prevents ignoring modal) */}
       </div>
     </div>
   );
