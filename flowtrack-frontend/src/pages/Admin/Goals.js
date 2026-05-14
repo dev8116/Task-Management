@@ -17,6 +17,16 @@ const emptyGoal = {
   keyResults: [],
 };
 
+const toArray = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.tasks)) return payload.tasks;
+  if (Array.isArray(payload?.data?.tasks)) return payload.data.tasks;
+  if (Array.isArray(payload?.projects)) return payload.projects;
+  if (Array.isArray(payload?.users)) return payload.users;
+  return [];
+};
+
 const Goals = () => {
   const [goals, setGoals] = useState([]);
   const [users, setUsers] = useState([]);
@@ -39,10 +49,10 @@ const Goals = () => {
         API.get('/tasks'),
       ]);
 
-      setGoals(goalRes.data || []);
-      setUsers(userRes.data || []);
-      setProjects(projectRes.data || []);
-      setTasks(taskRes.data || []);
+      setGoals(toArray(goalRes.data));
+      setUsers(toArray(userRes.data));
+      setProjects(toArray(projectRes.data));
+      setTasks(toArray(taskRes.data));
     } catch (err) {
       toast.error('Failed to load goals');
     } finally {
