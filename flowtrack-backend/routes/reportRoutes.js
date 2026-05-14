@@ -6,6 +6,7 @@ const {
   getPerformanceReport,
   getTaskSummary,
   getMyPerformance,
+  getWeeklyProductivitySummary,
 } = require('../controllers/reportController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
@@ -15,5 +16,6 @@ router.get('/projects', protect, authorize('admin', 'manager'), getProjectReport
 router.get('/performance', protect, authorize('admin', 'manager'), getPerformanceReport);
 router.get('/tasks-summary', protect, getTaskSummary);
 router.get('/my-performance', protect, getMyPerformance);
+router.get('/weekly-productivity', protect, getWeeklyProductivitySummary);
 
 module.exports = router;

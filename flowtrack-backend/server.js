@@ -16,6 +16,9 @@ const leaveRoutes = require("./routes/leaveRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const aiRoutes = require("./routes/aiRoutes");
+//const geofenceRoutes = require("./routes/geofenceRoutes");
+//const holidayRoutes = require("./routes/holidayRoutes");
+const goalRoutes = require("./routes/goalRoutes");
 
 const app = express();
 
@@ -40,6 +43,9 @@ app.use("/api/leaves", leaveRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/ai", aiRoutes);
+//app.use("/api/geofences", geofenceRoutes);
+//app.use("/api/holidays", holidayRoutes);
+app.use("/api/goals", goalRoutes);
 
 // Static for uploads
 app.use("/uploads", express.static("uploads"));

@@ -34,6 +34,8 @@ import AdminTasks from "./pages/Admin/AdminTasks";
 import AttendanceManagement from "./pages/Admin/AttendanceManagement";
 import LeaveManagement from "./pages/Admin/LeaveManagement";
 import Reports from "./pages/Admin/Reports";
+import Goals from "./pages/Admin/Goals";
+import ProductivityReport from "./pages/Admin/ProductivityReport";
 
 // Manager Pages
 import ManagerDashboard from "./pages/Manager/ManagerDashboard";
@@ -100,6 +102,8 @@ const AppRoutes = () => {
         <Route path="attendance" element={<AttendanceManagement />} />
         <Route path="leaves" element={<LeaveManagement />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="reports/productivity" element={<ProductivityReport />} />
+        <Route path="goals" element={<Goals />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
 

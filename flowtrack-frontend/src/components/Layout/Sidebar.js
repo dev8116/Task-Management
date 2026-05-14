@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   FiHome, FiUsers, FiFolder, FiCheckSquare, FiClock,
-  FiCalendar, FiActivity, FiBarChart2, FiUser
+  FiCalendar, FiBarChart2, FiUser, FiTarget, FiTrendingUp
 } from 'react-icons/fi';
 import './Sidebar.css';
 
@@ -11,14 +11,16 @@ const Sidebar = ({ isOpen, onClose }) => {
   const { user } = useAuth();
 
   const adminLinks = [
-    { to: '/admin/dashboard',      label: 'Dashboard',       icon: <FiHome /> },
-    { to: '/admin/users',          label: 'User Management', icon: <FiUsers /> },
-    { to: '/admin/projects',       label: 'Projects',        icon: <FiFolder /> },
-    { to: '/admin/tasks',          label: 'All Tasks',       icon: <FiCheckSquare /> },
-    { to: '/admin/attendance',     label: 'Attendance',      icon: <FiClock /> },
-    { to: '/admin/leaves',         label: 'Leave Management',icon: <FiCalendar /> },
-    { to: '/admin/reports',        label: 'Reports',         icon: <FiBarChart2 /> },
-    { to: '/admin/profile',        label: 'My Profile',      icon: <FiUser /> },
+    { to: '/admin/dashboard',              label: 'Dashboard',         icon: <FiHome /> },
+    { to: '/admin/users',                  label: 'User Management',   icon: <FiUsers /> },
+    { to: '/admin/projects',               label: 'Projects',          icon: <FiFolder /> },
+    { to: '/admin/tasks',                  label: 'All Tasks',         icon: <FiCheckSquare /> },
+    { to: '/admin/attendance',             label: 'Attendance',        icon: <FiClock /> },
+    { to: '/admin/leaves',                 label: 'Leave Management',  icon: <FiCalendar /> },
+    { to: '/admin/reports',                label: 'Reports',           icon: <FiBarChart2 /> },
+    { to: '/admin/reports/productivity',   label: 'Productivity',      icon: <FiTrendingUp /> },
+    { to: '/admin/goals',                  label: 'Goals & OKRs',      icon: <FiTarget /> },
+    { to: '/admin/profile',                label: 'My Profile',        icon: <FiUser /> },
   ];
 
   const managerLinks = [

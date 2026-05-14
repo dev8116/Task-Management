@@ -256,3 +256,88 @@ exports.getMyPerformance = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ── GET /api/reports/weekly-productivity ─────────────────────
+exports.getWeeklyProductivitySummary = async (req, res) => {
+  try {
+    const { startDate, endDate, userId, managerId } = req.query;
+
+    const end = endDate ? new Date(endDate) : new Date();
+    end.setHours(23, 59, 59, 999);
+
+    const start = startDate ? new Date(startDate) : new Date(end);
+    if (!startDate) start.setDate(end.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+
+    const startStr = start.toISOString().split("T")[0];
+    const endStr = end.toISOString().split("T")[0];
+
+    let users = [];
+
+    if (userId) {
+      const u = await User.findById(userId);
+      if (!u) return res.status(404).json({ message: "User not found" });
+
+      if (req.user.role === "manager" && String(u.manager) !== String(req.user._id) && String(u._id) !== String(req.user._id)) {
+        return res.status(403).json({ message: "Not authorized for this user" });
+      }
+
+      users = [u];
+    } else if (managerId && req.user.role === "admin") {
+      users = await User.find({ manager: managerId, role: "employee" });
+    } else if (req.user.role === "manager") {
+      users = await User.find({ manager: req.user._id, role: "employee" });
+    } else {
+      users = [req.user];
+    }
+
+    const results = [];
+    let totals = { tasksCompleted: 0, attendanceDays: 0, totalHours: 0 };
+
+    for (const u of users) {
+      const taskQuery = {
+        status: "completed",
+        updatedAt: { $gte: start, $lte: end },
+        $or: [{ assignedTo: u._id }, { assignedEmployees: u._id }],
+      };
+
+      const tasksCompleted = await Task.countDocuments(taskQuery);
+
+      const attendanceRecords = await Attendance.find({
+        user: u._id,
+        date: { $gte: startStr, $lte: endStr },
+      });
+
+      const attendanceDays = attendanceRecords.filter(
+        (a) => a.checkIn || ["Present", "Late", "Half Day"].includes(a.status)
+      ).length;
+
+      const totalHours = attendanceRecords.reduce((sum, a) => sum + (a.totalHours || 0), 0);
+
+      totals.tasksCompleted += tasksCompleted;
+      totals.attendanceDays += attendanceDays;
+      totals.totalHours += totalHours;
+
+      results.push({
+        userId: u._id,
+        name: u.name,
+        email: u.email,
+        tasksCompleted,
+        attendanceDays,
+        totalHours: Number(totalHours.toFixed(2)),
+      });
+    }
+
+    res.json({
+      range: { startDate: startStr, endDate: endStr },
+      totals: {
+        tasksCompleted: totals.tasksCompleted,
+        attendanceDays: totals.attendanceDays,
+        totalHours: Number(totals.totalHours.toFixed(2)),
+      },
+      users: results,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

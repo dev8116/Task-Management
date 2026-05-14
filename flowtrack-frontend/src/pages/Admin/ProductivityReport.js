@@ -3,9 +3,9 @@ import API from '../../api/axios';
 import ChartComponent from '../../components/Common/ChartComponent';
 import DataTable from '../../components/Common/DataTable';
 import { toast } from 'react-toastify';
-import '../../pages/Admin/ProductivityReport.css';
+import './ProductivityReport.css';
 
-const TeamPerformance = () => {
+const ProductivityReport = () => {
   const [data, setData] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -18,7 +18,7 @@ const TeamPerformance = () => {
       });
       setData(res.data);
     } catch (err) {
-      toast.error('Failed to load team productivity');
+      toast.error('Failed to load productivity report');
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ const TeamPerformance = () => {
 
   return (
     <div className="productivity-page">
-      <h2>Team Weekly Productivity</h2>
+      <h2>Weekly Productivity Summary</h2>
 
       <div className="filters">
         <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
@@ -83,9 +83,9 @@ const TeamPerformance = () => {
         <ChartComponent type="line" title="Hours Logged" data={hoursChart} dataKey="hours" xKey="name" />
       </div>
 
-      <DataTable title="Team Productivity" columns={columns} data={users} searchable />
+      <DataTable title="User Productivity" columns={columns} data={users} searchable />
     </div>
   );
 };
 
-export default TeamPerformance;
+export default ProductivityReport;
