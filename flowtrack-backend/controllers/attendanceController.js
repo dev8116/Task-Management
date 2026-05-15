@@ -366,12 +366,15 @@ exports.getAttendance = async (req, res) => {
       const team = await User.find({ manager: req.user._id }).select("_id");
       const teamIds = team.map((u) => u._id.toString());
 
-      query.user = { $in: teamIds };
-      if (userId) {
+      if (userId === "me" || userId === req.user._id.toString()) {
+        query.user = req.user._id;
+      } else if (userId) {
         if (!teamIds.includes(userId)) {
           return res.status(403).json({ message: "Not your team member" });
         }
         query.user = userId;
+      } else {
+        query.user = { $in: teamIds };
       }
     } else if (userId) {
       query.user = userId;

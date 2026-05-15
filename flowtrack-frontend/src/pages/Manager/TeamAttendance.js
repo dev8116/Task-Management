@@ -75,11 +75,26 @@ const TeamAttendance = () => {
   const columns = useMemo(
     () => [
       { header: 'Employee', render: (row) => row.user?.name || 'N/A' },
-      { header: 'Department', render: (row) => row.user?.department || 'N/A' },
+      { header: 'Email', render: (row) => row.user?.email || 'N/A' },
+      {
+        header: 'Role',
+        render: (row) => (
+          <span className={`role-badge ${row.user?.role || ''}`}>
+            {row.user?.role || 'N/A'}
+          </span>
+        ),
+      },
       { header: 'Date', accessor: 'date' },
+
+      // Normal attendance
       { header: 'Check In', render: (row) => formatTime(row.checkIn) },
       { header: 'Check Out', render: (row) => formatTime(row.checkOut) },
-      { header: 'Hours', render: (row) => (row.totalHours ? `${row.totalHours}h` : '--') },
+      { header: 'Total Hours', render: (row) => (row.totalHours ? `${row.totalHours}h` : '--') },
+
+      // Overtime details
+      { header: 'OT In', render: (row) => formatTime(row.overtimeCheckIn) },
+      { header: 'OT Out', render: (row) => formatTime(row.overtimeCheckOut) },
+      { header: 'OT Hours', render: (row) => (row.overtimeHours ? `${row.overtimeHours}h` : '--') },
 
       // NEW fields
       { header: 'Selfie Checks', render: (row) => summarizeSelfieChecks(row) },

@@ -79,7 +79,7 @@ const ManagerAttendance = () => {
   const fetchData = async () => {
     try {
       const [attRes, todayRes] = await Promise.all([
-        API.get('/attendance'),
+        API.get('/attendance?userId=me'),
         API.get('/attendance/today'),
       ]);
       setAttendance(attRes.data || []);
