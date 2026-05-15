@@ -4,6 +4,12 @@ const Task = require("../models/Task");
 const { notify, getRecipients } = require("../utils/notify");
 const { updateProjectProgress } = require("../utils/projectProgress");
 const { validateProjectStatusUpdate } = require("../utils/projectStatus");
+const { emitEvent } = require("../utils/socket");
+
+const emitProjectChange = (action, data = {}) => {
+  emitEvent("project", action, data);
+  emitEvent("reports", "refresh", { source: "project", ...data });
+};
 
 // ── GitHub URL validators ─────────────────────────────────────
 const isEmpty = (v) => v === undefined || v === null || String(v).trim() === "";
@@ -125,6 +131,8 @@ exports.createProject = async (req, res) => {
       .populate("manager", "name email")
       .populate("team", "name email department");
 
+    emitProjectChange("create", { id: project._id });
+
     res.status(201).json(populated);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -148,7 +156,6 @@ exports.updateProject = async (req, res) => {
     const { status: newStatus, description: newDescription, githubRepoUrl } = req.body;
 
     if (req.user.role === "admin") {
-      // Admin may close/cancel Planning and may edit description
       if (newStatus !== undefined) {
         if (project.status !== "Planning" || !["Closed", "Cancelled"].includes(newStatus)) {
           return res
@@ -161,7 +168,6 @@ exports.updateProject = async (req, res) => {
         updateData.description = newDescription;
       }
 
-      // ✅ Admin can update repo url
       if (githubRepoUrl !== undefined) {
         if (!isValidGitHubRepoUrl(githubRepoUrl)) {
           return res.status(400).json({ message: "Invalid GitHub repository URL." });
@@ -189,7 +195,6 @@ exports.updateProject = async (req, res) => {
         if (req.body[f] !== undefined) updateData[f] = req.body[f];
       });
 
-      // Managers cannot update githubRepoUrl (per your requirement)
       if (githubRepoUrl !== undefined) {
         return res.status(403).json({ message: "Only admin can update GitHub repository URL." });
       }
@@ -231,6 +236,8 @@ exports.updateProject = async (req, res) => {
       .populate("manager", "name email")
       .populate("team", "name email department");
 
+    emitProjectChange("update", { id: updatedProject._id });
+
     res.json(refreshed);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -238,7 +245,6 @@ exports.updateProject = async (req, res) => {
 };
 
 // @desc Delete project (Admin only)
-// @route DELETE /api/projects/:id
 exports.deleteProject = async (req, res) => {
   try {
     if (req.user.role !== "admin") {
@@ -264,6 +270,8 @@ exports.deleteProject = async (req, res) => {
     });
 
     await Project.findByIdAndDelete(req.params.id);
+
+    emitProjectChange("delete", { id: project._id });
 
     res.json({ message: "Project and related tasks deleted successfully" });
   } catch (error) {

@@ -13,6 +13,7 @@ import "./App.css";
 
 import { AjaxProvider, useAjax } from "./context/AjaxContext";
 import { configureAjaxHooks } from "./api/axios";
+import { DataSyncProvider, useDataSync } from "./context/DataSyncContext";
 
 // Auth Pages
 import Login from "./pages/Auth/Login";
@@ -58,6 +59,7 @@ import NotificationsPage from "./pages/Notifications/NotificationsPage";
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
+  const { dataVersion } = useDataSync();
 
   if (loading) return <div className="loading-screen">Loading...</div>;
 
@@ -76,7 +78,7 @@ const AppRoutes = () => {
   };
 
   return (
-    <Routes>
+    <Routes key={dataVersion}>
       <Route
         path="/login"
         element={user ? <Navigate to={getDashboardRedirect()} /> : <Login />}
@@ -172,11 +174,9 @@ const AjaxBootstrap = ({ children }) => {
       stop: ajax.stop,
       unauthorized: () => {
         logout();
-        // quick redirect on invalid session/token
         window.location.href = "/login";
       },
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return children;
@@ -188,8 +188,10 @@ const App = () => (
       <AuthProvider>
         <AjaxProvider>
           <AjaxBootstrap>
-            <AppRoutes />
-            <ToastContainer position="top-right" autoClose={3000} />
+            <DataSyncProvider>
+              <AppRoutes />
+              <ToastContainer position="top-right" autoClose={3000} />
+            </DataSyncProvider>
           </AjaxBootstrap>
         </AjaxProvider>
       </AuthProvider>

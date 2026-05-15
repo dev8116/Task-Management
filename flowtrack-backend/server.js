@@ -2,9 +2,11 @@ require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
+const http = require("http");
 const connectDB = require("./config/db");
 const seedAdmin = require("./utils/seedAdmin");
 const { startAttendanceScheduler } = require("./utils/attendanceScheduler"); // ✅ require first
+const { initSocket } = require("./utils/socket");
 
 // Route imports
 const authRoutes = require("./routes/authRoutes");
@@ -60,4 +62,8 @@ app.use((err, _req, res, _next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`FlowTrack server running on port ${PORT}`));
+
+const server = http.createServer(app);
+initSocket(server);
+
+server.listen(PORT, () => console.log(`FlowTrack server running on port ${PORT}`));

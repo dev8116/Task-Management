@@ -5,6 +5,12 @@ const Project = require("../models/Project");
 const User = require("../models/User");
 const { notify, getRecipients } = require("../utils/notify");
 const { updateProjectProgress } = require("../utils/projectProgress");
+const { emitEvent } = require("../utils/socket");
+
+const emitTaskChange = (action, data = {}) => {
+  emitEvent("task", action, data);
+  emitEvent("reports", "refresh", { source: "task", ...data });
+};
 
 // ── GitHub validators ─────────────────────────────────────────
 const isEmpty = (v) => v === undefined || v === null || String(v).trim() === "";
@@ -416,6 +422,8 @@ exports.createTask = async (req, res) => {
 
     if (task.project) await updateProjectProgress(task.project);
 
+    emitTaskChange("create", { id: task._id });
+
     res.status(201).json({ success: true, data: task });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -582,6 +590,8 @@ exports.updateTask = async (req, res) => {
 
     if (task.project) await updateProjectProgress(task.project);
 
+    emitTaskChange("update", { id: task._id });
+
     res.json({ success: true, data: task });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -650,6 +660,8 @@ exports.updateTaskStatus = async (req, res) => {
 
     if (task.project) await updateProjectProgress(task.project);
 
+    emitTaskChange("status", { id: task._id, status });
+
     res.json({ success: true, message: `Status updated to '${status}'`, data: task });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -674,6 +686,8 @@ exports.updateChecklist = async (req, res) => {
     task.updatedBy = req.user._id;
     await task.save();
 
+    emitTaskChange("checklist", { id: task._id });
+
     res.json({ success: true, data: task });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -697,6 +711,8 @@ exports.updateSubtasks = async (req, res) => {
     task.subtasks = normalizeSubtasks(subtasks);
     task.updatedBy = req.user._id;
     await task.save();
+
+    emitTaskChange("subtasks", { id: task._id });
 
     res.json({ success: true, data: task });
   } catch (err) {
@@ -788,6 +804,8 @@ exports.submitCompletion = async (req, res) => {
 
     if (task.project) await updateProjectProgress(task.project);
 
+    emitTaskChange("submit", { id: task._id });
+
     res.json({ success: true, message: "Submission uploaded", data: task });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -839,6 +857,8 @@ exports.reviewSubmission = async (req, res) => {
     });
 
     if (task.project) await updateProjectProgress(task.project);
+
+    emitTaskChange("review", { id: task._id, decision });
 
     res.json({ success: true, message: `Submission ${decision}`, data: task });
   } catch (err) {
@@ -939,6 +959,8 @@ exports.deleteTask = async (req, res) => {
     });
 
     if (task.project) await updateProjectProgress(task.project);
+
+    emitTaskChange("delete", { id: task._id });
 
     res.json({ success: true, message: "Task deleted" });
   } catch (err) {

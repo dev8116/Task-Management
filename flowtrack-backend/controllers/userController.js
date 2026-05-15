@@ -2,6 +2,12 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
+const { emitEvent } = require("../utils/socket");
+
+const emitUserChange = (action, data = {}) => {
+  emitEvent("user", action, data);
+  emitEvent("reports", "refresh", { source: "user", ...data });
+};
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -133,6 +139,8 @@ exports.updateMyProfile = async (req, res) => {
       .select('-password -resetPasswordToken -resetPasswordExpires')
       .populate('manager', 'name email department');
 
+    emitUserChange("update-profile", { id: updatedUser._id });
+
     res.json({
       message: 'Profile updated successfully',
       user: updatedUser,
@@ -170,6 +178,8 @@ exports.updateMyAvatar = async (req, res) => {
     const updatedUser = await User.findById(user._id)
       .select('-password -resetPasswordToken -resetPasswordExpires')
       .populate('manager', 'name email department');
+
+    emitUserChange("update-avatar", { id: updatedUser._id });
 
     res.json({
       message: 'Avatar updated successfully',
@@ -210,6 +220,9 @@ exports.createUser = async (req, res) => {
     }
 
     const createdUser = await User.findById(user._id).select('-password');
+
+    emitUserChange("create", { id: createdUser._id });
+
     res.status(201).json(createdUser);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -250,6 +263,9 @@ exports.updateUser = async (req, res) => {
     const updatedUser = await User.findById(user._id)
       .select('-password')
       .populate('manager', 'name email');
+
+    emitUserChange("update", { id: updatedUser._id });
+
     res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -270,6 +286,8 @@ exports.deleteUser = async (req, res) => {
     }
 
     await User.findByIdAndDelete(req.params.id);
+
+    emitUserChange("delete", { id: req.params.id });
 
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
