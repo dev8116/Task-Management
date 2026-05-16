@@ -33,9 +33,9 @@
 }
 
 /* Table */
-.adm-table-wrapper { overflow-x: auto; }
+.adm-table-wrapper { width: 100%; }
 .adm-table {
-  width: 100%; border-collapse: collapse;
+  width: 100%; min-width: 1200px; border-collapse: collapse;
   background: #fff; border-radius: 12px; overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }

@@ -152,6 +152,14 @@
   color: #ddd;
 }
 
+.employee-table-scroll {
+  width: 100%;
+}
+
+.employee-recent-table {
+  min-width: 720px;
+}
+
 /* Responsive */
 @media (max-width: 1100px) {
   .quick-actions > button:first-child { grid-column: span 12; }
@@ -166,11 +174,4 @@
 
   .dashboard-cards { grid-template-columns: 1fr; }
   .dashboard-cards > * { grid-column: auto; }
-
-  /* tables scroll on small screens */
-  .employee-dashboard table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
-  }
 }

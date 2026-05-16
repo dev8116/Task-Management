@@ -3,6 +3,7 @@ import API from '../../api/axios';
 import DashboardCard from '../../components/Common/DashboardCard';
 import ChartComponent from '../../components/Common/ChartComponent';
 import CalendarView from '../../components/Common/CalendarView';
+import ScrollContainer from '../../components/Common/ScrollContainer';
 import { FiUsers, FiFolder, FiCheckSquare, FiUserCheck, FiClock, FiAlertCircle } from 'react-icons/fi';
 import './AdminDashboard.css';
 
@@ -128,7 +129,7 @@ const AdminDashboard = () => {
           <span className="panel-hint">Last 5 created users</span>
         </div>
 
-        <div className="table-scroll">
+        <ScrollContainer className="table-scroll">
           <table className="dash-table">
             <thead>
               <tr>
@@ -160,7 +161,7 @@ const AdminDashboard = () => {
               )}
             </tbody>
           </table>
-        </div>
+        </ScrollContainer>
       </div>
 
       {/* Calendar */}

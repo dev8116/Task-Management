@@ -44,6 +44,7 @@
 
 .data-table {
   width: 100%;
+  min-width: 720px;
   border-collapse: collapse;
 }
 
@@ -83,7 +84,7 @@
 }
 
 .table-responsive {
-  overflow-x: auto;
+  width: 100%;
 }
 
 .status-badge {

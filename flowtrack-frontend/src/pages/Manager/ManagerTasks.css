@@ -9,10 +9,10 @@
 .mgrtasks-title { font-size: 22px; font-weight: 700; color: #1e293b; margin: 0; }
 
 /* ── Table ──────────────────────────────────────────────── */
-.mgrtasks-table-wrapper { overflow-x: auto; }
+.mgrtasks-table-wrapper { width: 100%; }
 
 .mgrtasks-table {
-  width: 100%; border-collapse: collapse;
+  width: 100%; min-width: 1250px; border-collapse: collapse;
   background: #fff; border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.07);
   overflow: hidden;

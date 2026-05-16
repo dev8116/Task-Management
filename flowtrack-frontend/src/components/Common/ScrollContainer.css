@@ -1,0 +1,36 @@
+.scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
+}
+
+.scroll-container__inner {
+  min-width: 100%;
+}
+
+.scroll-container__inner--nowrap {
+  white-space: nowrap;
+}
+
+/* Optional scrollbar styling */
+.scroll-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.dark .scroll-container::-webkit-scrollbar-track {
+  background: #1f2333;
+}
+
+.dark .scroll-container::-webkit-scrollbar-thumb {
+  background: #475569;
+}

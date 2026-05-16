@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import API from '../../api/axios';
 import { toast } from 'react-toastify';
 import { FiFile, FiSearch } from 'react-icons/fi';
+import ScrollContainer from '../../components/Common/ScrollContainer';
 import './AdminTasks.css';
 
 const openLink = (url) => {
@@ -168,7 +169,7 @@ const AdminTasks = () => {
         )}
       </div>
 
-      <div className="adm-table-wrapper">
+      <ScrollContainer className="adm-table-wrapper">
         <table className="adm-table">
           <thead>
             <tr>
@@ -280,7 +281,7 @@ const AdminTasks = () => {
             )}
           </tbody>
         </table>
-      </div>
+      </ScrollContainer>
     </div>
   );
 };

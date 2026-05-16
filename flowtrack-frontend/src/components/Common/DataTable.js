@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './DataTable.css';
+import ScrollContainer from './ScrollContainer';
 
 const DataTable = ({ title, columns = [], data = [], searchable = true, actions, rowClassName }) => {
   const [search, setSearch] = useState('');
@@ -45,7 +46,7 @@ const DataTable = ({ title, columns = [], data = [], searchable = true, actions,
           />
         )}
       </div>
-      <div className="table-responsive">
+      <ScrollContainer className="table-responsive">
         <table className="data-table">
           <thead>
             <tr>
@@ -82,7 +83,7 @@ const DataTable = ({ title, columns = [], data = [], searchable = true, actions,
             )}
           </tbody>
         </table>
-      </div>
+      </ScrollContainer>
     </div>
   );
 };

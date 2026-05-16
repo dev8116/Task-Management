@@ -4,6 +4,7 @@ import API from '../../api/axios';
 import DashboardCard from '../../components/Common/DashboardCard';
 import ChartComponent from '../../components/Common/ChartComponent';
 import CalendarView from '../../components/Common/CalendarView';
+import ScrollContainer from '../../components/Common/ScrollContainer';
 import {
   FiCheckSquare, FiClock, FiAlertCircle, FiTrendingUp, FiLogIn, FiLogOut,
 } from 'react-icons/fi';
@@ -252,38 +253,40 @@ const EmployeeDashboard = () => {
           boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
         }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>Recent Tasks</h3>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left', padding: '8px', fontSize: '12px', color: '#888', borderBottom: '1px solid #eee' }}>Task</th>
-                <th style={{ textAlign: 'left', padding: '8px', fontSize: '12px', color: '#888', borderBottom: '1px solid #eee' }}>Project</th>
-                <th style={{ textAlign: 'left', padding: '8px', fontSize: '12px', color: '#888', borderBottom: '1px solid #eee' }}>Status</th>
-                <th style={{ textAlign: 'left', padding: '8px', fontSize: '12px', color: '#888', borderBottom: '1px solid #eee' }}>Deadline</th>
-              </tr>
-            </thead>
-            <tbody>
-              {safeTasks
-                .slice()
-                .sort((a, b) => {
-                  const da = a.updatedAt ? new Date(a.updatedAt) : new Date(0);
-                  const db = b.updatedAt ? new Date(b.updatedAt) : new Date(0);
-                  return db - da;
-                })
-                .slice(0, 5)
-                .map((t) => (
-                  <tr key={t._id || t.id || Math.random()}>
-                    <td style={{ padding: '10px 8px', fontSize: '14px', borderBottom: '1px solid #f5f5f5' }}>{t.title || 'Untitled'}</td>
-                    <td style={{ padding: '10px 8px', fontSize: '13px', color: '#666', borderBottom: '1px solid #f5f5f5' }}>{t.project?.name || 'N/A'}</td>
-                    <td style={{ padding: '10px 8px', borderBottom: '1px solid #f5f5f5' }}>
-                      {statusBadge(t.status)}
-                    </td>
-                    <td style={{ padding: '10px 8px', fontSize: '13px', borderBottom: '1px solid #f5f5f5' }}>
-                      {deadlineLabel(t.deadline, t.status)}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+          <ScrollContainer className="employee-table-scroll">
+            <table className="employee-recent-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '8px', fontSize: '12px', color: '#888', borderBottom: '1px solid #eee' }}>Task</th>
+                  <th style={{ textAlign: 'left', padding: '8px', fontSize: '12px', color: '#888', borderBottom: '1px solid #eee' }}>Project</th>
+                  <th style={{ textAlign: 'left', padding: '8px', fontSize: '12px', color: '#888', borderBottom: '1px solid #eee' }}>Status</th>
+                  <th style={{ textAlign: 'left', padding: '8px', fontSize: '12px', color: '#888', borderBottom: '1px solid #eee' }}>Deadline</th>
+                </tr>
+              </thead>
+              <tbody>
+                {safeTasks
+                  .slice()
+                  .sort((a, b) => {
+                    const da = a.updatedAt ? new Date(a.updatedAt) : new Date(0);
+                    const db = b.updatedAt ? new Date(b.updatedAt) : new Date(0);
+                    return db - da;
+                  })
+                  .slice(0, 5)
+                  .map((t) => (
+                    <tr key={t._id || t.id || Math.random()}>
+                      <td style={{ padding: '10px 8px', fontSize: '14px', borderBottom: '1px solid #f5f5f5' }}>{t.title || 'Untitled'}</td>
+                      <td style={{ padding: '10px 8px', fontSize: '13px', color: '#666', borderBottom: '1px solid #f5f5f5' }}>{t.project?.name || 'N/A'}</td>
+                      <td style={{ padding: '10px 8px', borderBottom: '1px solid #f5f5f5' }}>
+                        {statusBadge(t.status)}
+                      </td>
+                      <td style={{ padding: '10px 8px', fontSize: '13px', borderBottom: '1px solid #f5f5f5' }}>
+                        {deadlineLabel(t.deadline, t.status)}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </ScrollContainer>
         </div>
       )}
 
