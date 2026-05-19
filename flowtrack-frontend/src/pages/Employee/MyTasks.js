@@ -19,20 +19,20 @@ const openLink = (url) => {
   window.open(u, '_blank', 'noopener,noreferrer');
 };
 
-const formatRecurrence = (rec) => {
-  if (!rec?.enabled) return '—';
-  if (rec.frequency === 'daily') return `Daily · every ${rec.interval || 1} day(s)`;
-  if (rec.frequency === 'weekly') {
-    const days = (rec.daysOfWeek || [])
-      .map((d) => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d])
-      .join(', ');
-    return `Weekly · every ${rec.interval || 1} week(s) ${days ? `(${days})` : ''}`;
-  }
-  if (rec.frequency === 'monthly') {
-    return `Monthly · day ${rec.dayOfMonth || 1} every ${rec.interval || 1} month(s)`;
-  }
-  return '—';
-};
+// const formatRecurrence = (rec) => {
+//   if (!rec?.enabled) return '—';
+//   if (rec.frequency === 'daily') return `Daily · every ${rec.interval || 1} day(s)`;
+//   if (rec.frequency === 'weekly') {
+//     const days = (rec.daysOfWeek || [])
+//       .map((d) => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d])
+//       .join(', ');
+//     return `Weekly · every ${rec.interval || 1} week(s) ${days ? `(${days})` : ''}`;
+//   }
+//   if (rec.frequency === 'monthly') {
+//     return `Monthly · day ${rec.dayOfMonth || 1} every ${rec.interval || 1} month(s)`;
+//   }
+//   return '—';
+// };
 
 export default function MyTasks() {
   const [tasks, setTasks] = useState([]);
@@ -185,7 +185,7 @@ export default function MyTasks() {
                   {task.project?.name && <span>Project: {task.project.name}</span>}
                 </div>
 
-                <div className="mytask-section">
+                {/* <div className="mytask-section">
                   <h4>Dependencies</h4>
                   {blockedBy.length === 0 ? (
                     <p className="mytask-muted">No blocking tasks.</p>
@@ -206,7 +206,7 @@ export default function MyTasks() {
                       </ul>
                     </>
                   )}
-                </div>
+                </div> */}
 
                 {subtasksTotal > 0 && (
                   <div className="mytask-section">
@@ -258,10 +258,10 @@ export default function MyTasks() {
                   </div>
                 )}
 
-                <div className="mytask-section">
+                {/* <div className="mytask-section">
                   <h4>Recurring</h4>
                   <p className="mytask-muted">{formatRecurrence(task.recurrence)}</p>
-                </div>
+                </div> */}
 
                 <div className="mytask-meta">
                   {task.project?.githubRepoUrl ? (

@@ -158,16 +158,6 @@
   color: #64748b;
 }
 
-/* ── Recurrence ─────────────────────────────────────────── */
-.mgr-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #334155;
-  margin-bottom: 10px;
-}
-
 .mgr-recurring-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));

@@ -25,24 +25,6 @@ const subtaskSchema = new mongoose.Schema(
   { _id: true }
 );
 
-const recurrenceSchema = new mongoose.Schema(
-  {
-    enabled: { type: Boolean, default: false },
-    frequency: {
-      type: String,
-      enum: ["daily", "weekly", "monthly"],
-      default: "daily",
-    },
-    interval: { type: Number, default: 1 },
-    daysOfWeek: [{ type: Number }], // 0=Sun ... 6=Sat
-    dayOfMonth: { type: Number, default: null },
-    startDate: { type: Date, default: null },
-    endDate: { type: Date, default: null },
-    nextRunAt: { type: Date, default: null },
-  },
-  { _id: false }
-);
-
 const taskSchema = new mongoose.Schema(
   {
     title: { type: String, required: [true, "Task title is required"], trim: true },
@@ -101,17 +83,9 @@ const taskSchema = new mongoose.Schema(
     githubCommitUrl: { type: String, default: "" },
     githubPullRequestUrl: { type: String, default: "" },
 
-    // ✅ Dependencies
-    dependsOn: [{ type: mongoose.Schema.Types.ObjectId, ref: "Task" }],
-    blocking: [{ type: mongoose.Schema.Types.ObjectId, ref: "Task" }],
-
     // ✅ Subtasks & Checklist
     subtasks: { type: [subtaskSchema], default: [] },
     checklist: { type: [checklistItemSchema], default: [] },
-
-    // ✅ Recurrence
-    recurrence: { type: recurrenceSchema, default: () => ({ enabled: false }) },
-
     // Completion Submission (KEEP EXISTING)
     submissionFile: {
       filename: { type: String, default: null },

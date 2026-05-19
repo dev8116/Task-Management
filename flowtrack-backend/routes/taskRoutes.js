@@ -10,7 +10,7 @@ const {
   submitCompletion,
   reviewSubmission,
   getSubmissionFile,
-  updateChecklist,
+  updateChecklist, 
   updateSubtasks,
 } = require("../controllers/taskController");
 

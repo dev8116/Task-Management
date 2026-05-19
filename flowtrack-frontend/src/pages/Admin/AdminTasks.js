@@ -26,21 +26,6 @@ const PRIORITY_STYLE = {
   urgent: { background: '#fee2e2', color: '#991b1b' },
 };
 
-const formatRecurrence = (rec) => {
-  if (!rec?.enabled) return '—';
-  if (rec.frequency === 'daily') return `Daily · every ${rec.interval || 1} day(s)`;
-  if (rec.frequency === 'weekly') {
-    const days = (rec.daysOfWeek || [])
-      .map((d) => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d])
-      .join(', ');
-    return `Weekly · every ${rec.interval || 1} week(s) ${days ? `(${days})` : ''}`;
-  }
-  if (rec.frequency === 'monthly') {
-    return `Monthly · day ${rec.dayOfMonth || 1} every ${rec.interval || 1} month(s)`;
-  }
-  return '—';
-};
-
 const AdminTasks = () => {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -179,7 +164,6 @@ const AdminTasks = () => {
               <th>Priority</th>
               <th>Assigned To</th>
               <th>Deadline</th>
-              <th>Dependencies</th>
               <th>Subtasks</th>
               <th>Checklist</th>
               <th>Recurring</th>
@@ -192,12 +176,6 @@ const AdminTasks = () => {
               const deadline = t.deadline || t.dueDate;
               const statusStyle = STATUS_STYLE[t.status] || { background: '#e2e8f0', color: '#475569' };
               const priorityStyle = PRIORITY_STYLE[t.priority] || { background: '#e2e8f0', color: '#475569' };
-
-              const blockedBy = (t.dependsOn || []).filter((d) => d.status !== 'completed');
-              const blocking = t.blocking || [];
-              const depSummary = blockedBy.length || blocking.length
-                ? `Blocked by ${blockedBy.length} • Blocking ${blocking.length}`
-                : '—';
 
               const subtasksTotal = t.subtasks?.length || 0;
               const subtasksDone = t.subtasks?.filter((s) => s.status === 'completed').length || 0;
@@ -226,10 +204,8 @@ const AdminTasks = () => {
                   </td>
                   <td>{getEmpNames(t)}</td>
                   <td>{deadline ? new Date(deadline).toLocaleDateString() : '—'}</td>
-                  <td title={depSummary}>{depSummary}</td>
                   <td>{subtasksTotal ? `${subtasksDone}/${subtasksTotal}` : '—'}</td>
                   <td>{checklistTotal ? `${checklistDone}/${checklistTotal}` : '—'}</td>
-                  <td>{formatRecurrence(t.recurrence)}</td>
 
                   <td>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -274,7 +250,7 @@ const AdminTasks = () => {
 
             {filteredTasks.length === 0 && (
               <tr>
-                <td colSpan="12" className="adm-empty">
+                <td colSpan="11" className="adm-empty">
                   {tasks.length === 0 ? 'No tasks available.' : 'No tasks match the selected filters.'}
                 </td>
               </tr>

@@ -18,8 +18,8 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/admin/attendance',             label: 'Attendance',        icon: <FiClock /> },
     { to: '/admin/leaves',                 label: 'Leave Management',  icon: <FiCalendar /> },
     { to: '/admin/reports',                label: 'Reports',           icon: <FiBarChart2 /> },
-    { to: '/admin/reports/productivity',   label: 'Productivity',      icon: <FiTrendingUp /> },
-    { to: '/admin/goals',                  label: 'Goals & OKRs',      icon: <FiTarget /> },
+    // { to: '/admin/reports/productivity',   label: 'Productivity',      icon: <FiTrendingUp /> },
+    // { to: '/admin/goals',                  label: 'Goals & OKRs',      icon: <FiTarget /> },
     { to: '/admin/profile',                label: 'My Profile',        icon: <FiUser /> },
   ];
 

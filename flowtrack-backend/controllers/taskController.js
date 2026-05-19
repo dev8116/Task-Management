@@ -44,12 +44,6 @@ function normalizeStr(v) {
   return String(v || "").trim();
 }
 
-// ── Dependency & Recurrence Helpers ───────────────────────────
-const normalizeIdArray = (values = []) => {
-  if (!Array.isArray(values)) return [];
-  const list = values.map((v) => String(v)).filter(Boolean);
-  return Array.from(new Set(list));
-};
 
 const normalizeChecklist = (items = []) => {
   if (!Array.isArray(items)) return [];
@@ -97,99 +91,62 @@ const toDateOrNull = (d) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const computeNextRun = (rec) => {
-  if (!rec?.enabled) return null;
-  const interval = Math.max(1, Number(rec.interval || 1));
-  const startDate = toDateOrNull(rec.startDate) || new Date();
-  const now = new Date();
-  const base = startDate > now ? startDate : now;
+// const computeNextRun = (rec) => {
+//   if (!rec?.enabled) return null;
+//   const interval = Math.max(1, Number(rec.interval || 1));
+//   const startDate = toDateOrNull(rec.startDate) || new Date();
+//   const now = new Date();
+//   const base = startDate > now ? startDate : now;
 
-  const addDays = (date, days) => {
-    const d = new Date(date);
-    d.setDate(d.getDate() + days);
-    return d;
-  };
+//   const addDays = (date, days) => {
+//     const d = new Date(date);
+//     d.setDate(d.getDate() + days);
+//     return d;
+//   };
 
-  if (rec.frequency === "daily") {
-    return addDays(base, interval);
-  }
+//   if (rec.frequency === "daily") {
+//     return addDays(base, interval);
+//   }
 
-  if (rec.frequency === "weekly") {
-    const days = Array.isArray(rec.daysOfWeek)
-      ? rec.daysOfWeek
-          .map((n) => parseInt(n, 10))
-          .filter((n) => n >= 0 && n <= 6)
-          .sort((a, b) => a - b)
-      : [];
+//   if (rec.frequency === "weekly") {
+//     const days = Array.isArray(rec.daysOfWeek)
+//       ? rec.daysOfWeek
+//           .map((n) => parseInt(n, 10))
+//           .filter((n) => n >= 0 && n <= 6)
+//           .sort((a, b) => a - b)
+//       : [];
 
-    if (!days.length) {
-      return addDays(base, 7 * interval);
-    }
+//     if (!days.length) {
+//       return addDays(base, 7 * interval);
+//     }
 
-    const baseDay = base.getDay();
-    const todayIndex = days.findIndex((d) => d === baseDay);
-    const nextSameDay = todayIndex !== -1 ? base : null;
+//     const baseDay = base.getDay();
+//     const todayIndex = days.findIndex((d) => d === baseDay);
+//     const nextSameDay = todayIndex !== -1 ? base : null;
 
-    if (nextSameDay) {
-      return addDays(base, 7 * interval);
-    }
+//     if (nextSameDay) {
+//       return addDays(base, 7 * interval);
+//     }
 
-    const nextDay = days.find((d) => d > baseDay);
-    if (nextDay !== undefined) {
-      const diff = nextDay - baseDay;
-      return addDays(base, diff);
-    }
+//     const nextDay = days.find((d) => d > baseDay);
+//     if (nextDay !== undefined) {
+//       const diff = nextDay - baseDay;
+//       return addDays(base, diff);
+//     }
 
-    // wrap to next interval week
-    const firstDay = days[0];
-    const diff = 7 * interval - (baseDay - firstDay);
-    return addDays(base, diff);
-  }
+//     // wrap to next interval week
+//     const firstDay = days[0];
+//     const diff = 7 * interval - (baseDay - firstDay);
+//     return addDays(base, diff);
+//   }
 
-  // monthly
-  const day = Math.min(31, Math.max(1, parseInt(rec.dayOfMonth || "", 10) || base.getDate()));
-  const d = new Date(base);
-  d.setMonth(d.getMonth() + interval);
-  d.setDate(day);
-  return d;
-};
-
-const normalizeRecurrence = (raw) => {
-  if (!raw || raw.enabled !== true) return { enabled: false };
-  const frequency = ["daily", "weekly", "monthly"].includes(raw.frequency)
-    ? raw.frequency
-    : "daily";
-  const interval = Math.max(1, parseInt(raw.interval, 10) || 1);
-  const daysOfWeek = Array.isArray(raw.daysOfWeek)
-    ? raw.daysOfWeek
-        .map((n) => parseInt(n, 10))
-        .filter((n) => n >= 0 && n <= 6)
-    : [];
-  const dayOfMonth = raw.dayOfMonth
-    ? Math.min(31, Math.max(1, parseInt(raw.dayOfMonth, 10)))
-    : null;
-
-  const normalized = {
-    enabled: true,
-    frequency,
-    interval,
-    daysOfWeek,
-    dayOfMonth,
-    startDate: toDateOrNull(raw.startDate),
-    endDate: toDateOrNull(raw.endDate),
-    nextRunAt: null,
-  };
-  normalized.nextRunAt = computeNextRun(normalized);
-  return normalized;
-};
-
-const getOpenDependencies = async (task) => {
-  if (!task?.dependsOn?.length) return [];
-  return Task.find({
-    _id: { $in: task.dependsOn },
-    status: { $ne: "completed" },
-  }).select("title status");
-};
+//   // monthly
+//   const day = Math.min(31, Math.max(1, parseInt(rec.dayOfMonth || "", 10) || base.getDate()));
+//   const d = new Date(base);
+//   d.setMonth(d.getMonth() + interval);
+//   d.setDate(day);
+//   return d;
+// };
 
 const canManageTask = (task, user) => {
   if (!task || !user) return false;
@@ -209,29 +166,6 @@ const canManageTask = (task, user) => {
   return false;
 };
 
-const syncDependencies = async (task, newDependsOn) => {
-  const oldDependsOn = (task.dependsOn || []).map(String);
-  const nextDependsOn = newDependsOn.map(String);
-
-  const removed = oldDependsOn.filter((id) => !nextDependsOn.includes(id));
-  const added = nextDependsOn.filter((id) => !oldDependsOn.includes(id));
-
-  if (removed.length) {
-    await Task.updateMany(
-      { _id: { $in: removed } },
-      { $pull: { blocking: task._id } }
-    );
-  }
-
-  if (added.length) {
-    await Task.updateMany(
-      { _id: { $in: added } },
-      { $addToSet: { blocking: task._id } }
-    );
-  }
-
-  task.dependsOn = nextDependsOn;
-};
 
 // ── GET /api/tasks
 exports.getTasks = async (req, res) => {
@@ -252,8 +186,6 @@ exports.getTasks = async (req, res) => {
       .populate("assignedEmployees", "name email")
       .populate("createdBy", "name email")
       .populate("assignedManager", "name email")
-      .populate("dependsOn", "title status")
-      .populate("blocking", "title status")
       .sort({ createdAt: -1 });
 
     res.json({ success: true, data: tasks });
@@ -271,8 +203,6 @@ exports.getTaskById = async (req, res) => {
       .populate("assignedEmployees", "name email")
       .populate("createdBy", "name email")
       .populate("assignedManager", "name email")
-      .populate("dependsOn", "title status")
-      .populate("blocking", "title status");
 
     if (!task) return res.status(404).json({ success: false, message: "Task not found" });
 
@@ -310,10 +240,8 @@ exports.createTask = async (req, res) => {
       githubIssueUrl,
 
       // ✅ New fields
-      dependsOn,
       checklist,
       subtasks,
-      recurrence,
     } = req.body;
 
     // Validate GitHub fields
@@ -348,14 +276,6 @@ exports.createTask = async (req, res) => {
       }
     }
 
-    const normalizedDependsOn = normalizeIdArray(dependsOn).filter((id) => id !== String(req.user._id));
-    if (normalizedDependsOn.length) {
-      const found = await Task.find({ _id: { $in: normalizedDependsOn } }).select("_id");
-      if (found.length !== normalizedDependsOn.length) {
-        return res.status(400).json({ success: false, message: "One or more dependency tasks not found." });
-      }
-    }
-
     const task = await Task.create({
       title,
       description,
@@ -379,25 +299,16 @@ exports.createTask = async (req, res) => {
       githubPullRequestUrl: "",
 
       // new
-      dependsOn: normalizedDependsOn,
       checklist: normalizeChecklist(checklist),
       subtasks: normalizeSubtasks(subtasks),
-      recurrence: normalizeRecurrence(recurrence),
     });
 
-    if (normalizedDependsOn.length) {
-      await Task.updateMany(
-        { _id: { $in: normalizedDependsOn } },
-        { $addToSet: { blocking: task._id } }
-      );
-    }
 
     await task.populate([
       { path: "assignedTo", select: "name email" },
       { path: "assignedEmployees", select: "name email" },
       { path: "project", select: "name githubRepoUrl" },
-      { path: "dependsOn", select: "title status" },
-      { path: "blocking", select: "title status" },
+      // { path: "blocking", select: "title status" },
     ]);
 
     const actorDoc = await User.findById(req.user._id);
@@ -469,10 +380,8 @@ exports.updateTask = async (req, res) => {
       githubPullRequestUrl,
 
       // ✅ New fields
-      dependsOn,
       checklist,
       subtasks,
-      recurrence,
     } = req.body;
 
     if (githubCommitUrl !== undefined || githubPullRequestUrl !== undefined) {
@@ -525,37 +434,9 @@ exports.updateTask = async (req, res) => {
     if (githubBranch !== undefined) task.githubBranch = normalizeStr(githubBranch);
     if (githubIssueUrl !== undefined) task.githubIssueUrl = normalizeStr(githubIssueUrl);
 
-    // ✅ Dependencies update
-    if (dependsOn !== undefined) {
-      const normalized = normalizeIdArray(dependsOn).filter((id) => id !== String(task._id));
-      if (normalized.length) {
-        const found = await Task.find({ _id: { $in: normalized } }).select("_id");
-        if (found.length !== normalized.length) {
-          return res.status(400).json({ success: false, message: "One or more dependency tasks not found." });
-        }
-      }
-      await syncDependencies(task, normalized);
-    }
-
     // ✅ Checklist / Subtasks
     if (checklist !== undefined) task.checklist = normalizeChecklist(checklist);
     if (subtasks !== undefined) task.subtasks = normalizeSubtasks(subtasks);
-
-    // ✅ Recurrence
-    if (recurrence !== undefined) {
-      task.recurrence = normalizeRecurrence(recurrence);
-    }
-
-    // If trying to move forward while blocked
-    if (["in-progress", "pending-approval", "completed"].includes(task.status)) {
-      const openDeps = await getOpenDependencies(task);
-      if (openDeps.length) {
-        return res.status(400).json({
-          success: false,
-          message: `Task is blocked by ${openDeps.length} incomplete dependency task(s).`,
-        });
-      }
-    }
 
     task.updatedBy = req.user._id;
     await task.save();
@@ -564,8 +445,7 @@ exports.updateTask = async (req, res) => {
       { path: "assignedTo", select: "name email" },
       { path: "assignedEmployees", select: "name email" },
       { path: "project", select: "name githubRepoUrl" },
-      { path: "dependsOn", select: "title status" },
-      { path: "blocking", select: "title status" },
+      // { path: "blocking", select: "title status" },
     ]);
 
     const actorDoc = await User.findById(req.user._id);
@@ -627,15 +507,15 @@ exports.updateTaskStatus = async (req, res) => {
         .json({ success: false, message: `Cannot change status from '${task.status}' to '${status}'` });
     }
 
-    if (status === "in-progress") {
-      const openDeps = await getOpenDependencies(task);
-      if (openDeps.length) {
-        return res.status(400).json({
-          success: false,
-          message: `Task is blocked by ${openDeps.length} incomplete dependency task(s).`,
-        });
-      }
-    }
+    // if (status === "in-progress") {
+    //   const openDeps = await getOpenDependencies(task);
+    //   if (openDeps.length) {
+    //     return res.status(400).json({
+    //       success: false,
+    //       message: `Task is blocked by ${openDeps.length} incomplete dependency task(s).`,
+    //     });
+    //   }
+    // }
 
     task.status = status;
     task.updatedBy = req.user._id;
@@ -671,52 +551,67 @@ exports.updateTaskStatus = async (req, res) => {
 // ── PATCH /api/tasks/:id/checklist
 exports.updateChecklist = async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id)
-      .populate("dependsOn", "title status")
-      .populate("blocking", "title status");
+    const task = await Task.findById(req.params.id);
 
-    if (!task) return res.status(404).json({ success: false, message: "Task not found" });
-
-    if (!canManageTask(task, req.user)) {
-      return res.status(403).json({ success: false, message: "Access denied" });
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
     }
 
     const { checklist } = req.body;
+
     task.checklist = normalizeChecklist(checklist);
     task.updatedBy = req.user._id;
+
     await task.save();
 
     emitTaskChange("checklist", { id: task._id });
 
-    res.json({ success: true, data: task });
+    res.json({
+      success: true,
+      data: task,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
 // ── PATCH /api/tasks/:id/subtasks
+// ── PATCH /api/tasks/:id/subtasks
 exports.updateSubtasks = async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id)
-      .populate("dependsOn", "title status")
-      .populate("blocking", "title status");
+    const task = await Task.findById(req.params.id);
 
-    if (!task) return res.status(404).json({ success: false, message: "Task not found" });
-
-    if (!canManageTask(task, req.user)) {
-      return res.status(403).json({ success: false, message: "Access denied" });
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
     }
 
     const { subtasks } = req.body;
+
     task.subtasks = normalizeSubtasks(subtasks);
     task.updatedBy = req.user._id;
+
     await task.save();
 
     emitTaskChange("subtasks", { id: task._id });
 
-    res.json({ success: true, data: task });
+    res.json({
+      success: true,
+      data: task,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
@@ -738,13 +633,13 @@ exports.submitCompletion = async (req, res) => {
       return res.status(403).json({ success: false, message: "You are not assigned to this task" });
     }
 
-    const openDeps = await getOpenDependencies(task);
-    if (openDeps.length) {
-      return res.status(400).json({
-        success: false,
-        message: `Task is blocked by ${openDeps.length} incomplete dependency task(s).`,
-      });
-    }
+    // const openDeps = await getOpenDependencies(task);
+    // if (openDeps.length) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: `Task is blocked by ${openDeps.length} incomplete dependency task(s).`,
+    //   });
+    // }
 
     const { githubCommitUrl, githubPullRequestUrl, submissionNote } = req.body;
 
@@ -920,20 +815,6 @@ exports.deleteTask = async (req, res) => {
         task.createdBy.toString() !== req.user._id.toString())
     ) {
       return res.status(403).json({ success: false, message: "You can only delete your own tasks" });
-    }
-
-    if (task.dependsOn?.length) {
-      await Task.updateMany(
-        { _id: { $in: task.dependsOn } },
-        { $pull: { blocking: task._id } }
-      );
-    }
-
-    if (task.blocking?.length) {
-      await Task.updateMany(
-        { _id: { $in: task.blocking } },
-        { $pull: { dependsOn: task._id } }
-      );
     }
 
     await Task.findByIdAndDelete(req.params.id);
