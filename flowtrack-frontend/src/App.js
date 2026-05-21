@@ -22,7 +22,7 @@ import ResetPassword from "./pages/Auth/ResetPassword";
 
 // Profile Page
 import ProfilePage from "./pages/Profile/ProfilePage";
-
+import './styles/responsive.css';
 // Layout
 import Layout from "./components/Layout/Layout";
 import ProtectedRoute from "./components/Common/ProtectedRoute";

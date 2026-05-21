@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { FiFile, FiSearch } from 'react-icons/fi';
 import ScrollContainer from '../../components/Common/ScrollContainer';
 import './AdminTasks.css';
-
+import '../../styles/responsive.css';
 const openLink = (url) => {
   const u = String(url || '').trim();
   if (!u) return;

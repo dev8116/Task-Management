@@ -1,324 +1,380 @@
-/* ── Container ──────────────────────────────────────────── */
-.mgrtasks-container  { padding: 24px; }
-.mgrtasks-loading    { text-align: center; padding: 40px; color: #888; }
+:root {
+  --mgr-border: #e2e8f0;
+  --mgr-shadow: 0 12px 30px rgba(2, 6, 23, 0.08);
+  --mgr-radius: 14px;
+  --mgr-text: #0f172a;
+  --mgr-muted: #64748b;
+
+  --mgr-primary: #2563eb;
+  --mgr-primary-600: #1d4ed8;
+}
+
+/* Prevent any parent layout overflow */
+.mgrtasks-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 12px;
+  overflow-x: hidden;
+}
 
 .mgrtasks-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 20px;
-}
-.mgrtasks-title { font-size: 22px; font-weight: 700; color: #1e293b; margin: 0; }
-
-/* ── Table ──────────────────────────────────────────────── */
-.mgrtasks-table-wrapper { width: 100%; }
-
-.mgrtasks-table {
-  width: 100%; min-width: 1250px; border-collapse: collapse;
-  background: #fff; border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-  overflow: hidden;
-}
-.mgrtasks-table th {
-  background: #f8fafc;
-  padding: 12px 16px;
-  text-align: left;
-  font-size: 13px;
-  font-weight: 700;
-  color: #64748b;
-  border-bottom: 1px solid #e2e8f0;
-}
-.mgrtasks-table td {
-  padding: 13px 16px;
-  font-size: 14px;
-  color: #334155;
-  border-bottom: 1px solid #f1f5f9;
-  vertical-align: middle;
-}
-.mgrtasks-table tr:last-child td { border-bottom: none; }
-.mgrtasks-table tr:hover td      { background: #f8fafc; }
-
-/* ── Status Badge ───────────────────────────────────────── */
-.mgr-badge {
-  font-size: 12px; font-weight: 600;
-  padding: 3px 10px; border-radius: 20px;
-}
-.badge-pending          { background: #fef9c3; color: #854d0e; }
-.badge-in-progress      { background: #dbeafe; color: #1e40af; }
-.badge-pending-approval { background: #fff7ed; color: #c2410c; }
-.badge-completed        { background: #dcfce7; color: #166534; }
-
-/* ── Priority ───────────────────────────────────────────── */
-.mgr-priority {
-  font-size: 11px; font-weight: 700; padding: 2px 8px;
-  border-radius: 20px; text-transform: uppercase;
-}
-.priority-low    { background: #dcfce7; color: #166534; }
-.priority-medium { background: #fef9c3; color: #854d0e; }
-.priority-high   { background: #ffedd5; color: #9a3412; }
-.priority-urgent { background: #fee2e2; color: #991b1b; }
-
-/* ── Actions ────────────────────────────────────────────── */
-.mgr-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.mgr-done    { font-size: 12px; color: #10b981; font-weight: 600; }
-
-/* ✅ GitHub actions group */
-.mgr-gh-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* ── Buttons ────────────────────────────────────────────── */
-.mgrtask-btn {
-  padding: 7px 14px; border-radius: 8px;
-  font-size: 13px; font-weight: 600;
-  cursor: pointer; border: none;
-  display: inline-flex; align-items: center;
-  transition: opacity 0.15s;
-}
-.mgrtask-btn:hover    { opacity: 0.85; }
-.mgrtask-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.btn-primary   { background: #3b82f6; color: #fff; }
-.btn-secondary { background: #e2e8f0; color: #334155; }
-.btn-danger    { background: #ef4444; color: #fff; }
-.btn-file      { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
-.btn-review    { background: #f97316; color: #fff; }
-.btn-approve   { background: #10b981; color: #fff; }
-.btn-reject    { background: #ef4444; color: #fff; }
-
-/* ✅ GitHub button */
-.btn-gh {
-  background: #111827;
-  color: #fff;
-  border: 1px solid #111827;
-}
-
-/* ── Modal ──────────────────────────────────────────────── */
-.mgr-modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.45);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 999;
-}
-.mgr-modal-box {
-  background: #fff; border-radius: 14px;
-  width: 100%; max-width: 500px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-  overflow: hidden;
-}
-.mgr-modal-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 18px 20px; border-bottom: 1px solid #e2e8f0;
-}
-.mgr-modal-header h3 { font-size: 17px; font-weight: 700; color: #1e293b; margin: 0; }
-.mgr-modal-close { background: none; border: none; cursor: pointer; color: #64748b; font-size: 18px; }
-.mgr-modal-body  { padding: 20px; }
-.mgr-modal-footer {
-  padding: 14px 20px; border-top: 1px solid #e2e8f0;
-  display: flex; justify-content: flex-end; gap: 10px;
-}
-
-/* ── Form ───────────────────────────────────────────────── */
-.mgr-form-group { margin-bottom: 14px; }
-.mgr-form-group label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; }
-.mgr-form-group input,
-.mgr-form-group select,
-.mgr-form-group textarea {
-  width: 100%; padding: 9px 12px;
-  border: 1px solid #e2e8f0; border-radius: 8px;
-  font-size: 14px; color: #334155;
-  outline: none; box-sizing: border-box;
-}
-.mgr-form-group input:focus,
-.mgr-form-group select:focus,
-.mgr-form-group textarea:focus { border-color: #3b82f6; }
-
-.mgr-form-row { display: flex; gap: 12px; }
-.mgr-form-row .mgr-form-group { flex: 1; }
-
-.mgr-inline-row {
-  display: flex;
-  gap: 8px;
   align-items: center;
-  margin-bottom: 8px;
-}
-
-.mgr-subtask-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 12px;
-  background: #f8fafc;
-}
-
-.mgr-hint {
-  display: block;
-  margin-top: 6px;
-  font-size: 12px;
-  color: #64748b;
-}
-
-.mgr-recurring-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  justify-content: space-between;
   gap: 12px;
+  margin-bottom: 12px;
 }
 
-.mgr-weekdays {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.mgrtasks-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--mgr-text);
 }
-.mgr-weekday {
-  font-size: 12px;
+
+/* Filters */
+.mgrtasks-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 10px;
+  margin: 10px 0 14px;
+  align-items: center;
+}
+
+.mgrtasks-filters select {
+  width: 100%;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--mgr-border);
+  background: #fff;
+  padding: 0 10px;
+  color: var(--mgr-text);
+  outline: none;
+}
+
+/* Buttons */
+.mgrtask-btn {
+  border: 1px solid var(--mgr-border);
+  background: #fff;
+  color: var(--mgr-text);
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-weight: 800;
+  cursor: pointer;
+  max-width: 100%;
+  font-size: 11.5px;
+  line-height: 1.1;
+  white-space: normal;
+}
+
+.btn-primary {
+  background: var(--mgr-primary);
+  border-color: rgba(37, 99, 235, 0.35);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--mgr-primary-600);
+}
+
+.btn-gh {
+  background: #0f172a;
+  border-color: rgba(15, 23, 42, 0.35);
+  color: #fff;
+}
+
+.btn-danger {
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.btn-file {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+}
+
+/* ------------------ TABLE: REAL FIXES ------------------ */
+
+/* Make sure wrapper is the ONLY horizontal scroll container */
+.mgrtasks-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  background: #fff;
+  border: 1px solid var(--mgr-border);
+  border-radius: var(--mgr-radius);
+  box-shadow: var(--mgr-shadow);
+
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+
+  position: relative;
+}
+
+/* Always allow the table to be wider than the wrapper */
+.mgrtasks-table {
+  width: 100%;
+  min-width: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+/* Header */
+.mgrtasks-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--mgr-border);
+  text-align: left;
+  font-size: 12px;
+  color: #334155;
+  padding: 8px 8px;
+  white-space: nowrap;
+}
+
+/* Body */
+.mgrtasks-table tbody td {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 8px 8px;
+  vertical-align: top;
+  font-size: 12.5px;
+  color: var(--mgr-text);
+}
+
+/* Column widths tuned to fit the visible viewport */
+.mgrtasks-table th:nth-child(1) {
+  width: 160px;
+}
+
+/* Title */
+.mgrtasks-table th:nth-child(2) {
+  width: 85px;
+}
+
+/* Project */
+.mgrtasks-table th:nth-child(3) {
+  width: 85px;
+}
+
+/* Status */
+.mgrtasks-table th:nth-child(4) {
+  width: 75px;
+}
+
+/* Priority */
+.mgrtasks-table th:nth-child(5) {
+  width: 110px;
+}
+
+/* Assigned */
+.mgrtasks-table th:nth-child(6) {
+  width: 80px;
+}
+
+/* Deadline */
+.mgrtasks-table th:nth-child(7) {
+  width: 52px;
+}
+
+/* Subtasks */
+.mgrtasks-table th:nth-child(8) {
+  width: 52px;
+}
+
+/* Checklist */
+.mgrtasks-table th:nth-child(9) {
+  width: 110px;
+}
+
+/* GitHub (smaller!) */
+.mgrtasks-table th:nth-child(10) {
+  width: 92px;
+}
+
+/* Submission */
+.mgrtasks-table th:nth-child(11) {
+  width: 120px;
+}
+
+/* Actions (smaller!) */
+
+/* Allow wrapping for long titles */
+.mgrtasks-table td:nth-child(1) {
+  max-width: 160px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-weight: 400;
+  font-size: 12.5px;
+}
+
+.mgrtasks-table thead th:last-child,
+.mgrtasks-table tbody td:last-child {
+  width: 120px;
+}
+
+/* GitHub buttons: 1 column (prevents huge width) */
+.mgr-gh-actions {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 4px;
 }
 
-/* ── Wider modal for Create Task ─────────────────────── */
-.mgr-modal-lg { max-width: 900px; }
-
-/* ── Filters bar ─────────────────────────────────────── */
-.mgrtasks-filters {
-  display: flex; flex-wrap: wrap; gap: 10px;
-  margin-bottom: 18px;
-}
-.mgrtasks-filters select {
-  padding: 8px 12px; border-radius: 8px;
-  border: 1px solid #e2e8f0; font-size: 13px;
-  color: #334155; background: #fff; cursor: pointer;
-}
-.mgrtasks-filters select:focus { outline: none; border-color: #3b82f6; }
-
-/* ── Warning banner ──────────────────────────────────── */
-.mgrtasks-warning {
-  background: #fff7ed; border: 1px solid #fed7aa;
-  border-radius: 10px; padding: 14px 18px;
-  margin-bottom: 18px; font-size: 14px; color: '#ef6c00';
-}
-
-/* ── Demo Task button ────────────────────────────────── */
-.btn-demo {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #86efac;
-}
-.btn-demo:hover { background: #dcfce7; }
-
-/* ── Demo dropdown ───────────────────────────────────── */
-.demo-dropdown {
-  position: absolute; top: calc(100% + 6px); right: 0;
-  background: #fff; border: 1px solid #e2e8f0;
-  border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-  z-index: 1000; min-width: 220px; padding: 8px 0;
-}
-.demo-dropdown-title {
-  font-size: 11px; font-weight: 700; color: #94a3b8;
-  text-transform: uppercase; letter-spacing: 0.05em;
-  padding: 4px 14px 8px;
-}
-.demo-dropdown-item {
-  display: block; width: 100%;
-  padding: 9px 14px; text-align: left;
-  background: none; border: none;
-  font-size: 13px; color: #334155; cursor: pointer;
-  transition: background 0.12s;
-}
-.demo-dropdown-item:hover { background: #f1f5f9; color: #1e293b; }
-/* ✅ Popup overlay: allow scroll on small screens */
-.mgr-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  z-index: 999;
-  overflow-y: auto;
-  padding: 28px 14px;
-}
-
-/* ✅ Modal box: scrollable content */
-.mgr-modal-box {
-  background: #fff;
-  border-radius: 16px;
+.mgr-gh-actions .mgrtask-btn {
   width: 100%;
-  max-width: 640px;
-  box-shadow: 0 18px 48px rgba(0,0,0,0.2);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  padding: 5px 6px;
+  font-size: 10.5px;
 }
 
-/* Wider create modal */
-.mgr-modal-lg {
-  max-width: 900px;
-}
-
-/* ✅ Header and body spacing */
-.mgr-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 22px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
-}
-
-.mgr-modal-header h3 {
-  font-size: 18px;
-  font-weight: 700;
-  margin: 0;
-}
-
-.mgr-modal-body {
-  padding: 22px;
-  max-height: 75vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* ✅ Subtask / checklist card style */
-.mgr-subtask-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 12px;
-  background: #f8fafc;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
-}
-
-/* ✅ Buttons: rounded + responsive */
-.mgrtask-btn {
-  padding: 9px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  border: none;
-  display: inline-flex;
-  align-items: center;
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
-}
-
-.mgrtask-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
-}
-
-/* ✅ Responsive form rows */
-.mgr-form-row {
+/* Actions: stack nicely */
+.mgr-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 4px;
 }
 
-@media (max-width: 768px) {
-  .mgr-form-row {
+.mgr-actions .mgrtask-btn {
+  width: 100%;
+  padding: 5px 6px;
+  font-size: 10.5px;
+}
+
+/* Sticky last column (Actions) stays visible while scrolling */
+.mgrtasks-table thead th:last-child,
+.mgrtasks-table tbody td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 4;
+  background: #fff;
+  border-left: 1px solid #f1f5f9;
+}
+
+/* Make header of sticky column match header background */
+.mgrtasks-table thead th:last-child {
+  background: #f8fafc;
+}
+
+/* ------------------ Responsive Breakpoints ------------------ */
+
+@media (max-width: 1024px) {
+  .mgrtasks-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mgrtasks-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mgrtasks-header .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .mgrtasks-title {
+    font-size: 20px;
+  }
+
+  .mgrtasks-filters {
     grid-template-columns: 1fr;
   }
-  .mgr-modal-body {
-    max-height: 70vh;
+
+  .mgrtask-btn {
+    width: 100%;
   }
+}
+
+/* Truncated title with ... and click-to-expand */
+.mgr-title-btn {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+
+  font-weight: 400;
+  font-size: inherit;
+  color: inherit;
+  cursor: pointer;
+
+  /* truncate */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* expanded state */
+.mgr-title-btn.is-expanded {
+  white-space: normal;
+  /* allow wrap */
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* optional: focus visible */
+.mgr-title-btn:focus {
+  outline: 2px solid rgba(37, 99, 235, 0.35);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* =========================
+   Responsive column hiding
+   ========================= */
+
+/* <= 1200px: hide Subtasks + Checklist */
+@media (max-width: 1200px) {
+  .mgrtasks-table th:nth-child(7),
+  .mgrtasks-table td:nth-child(7),
+  .mgrtasks-table th:nth-child(8),
+  .mgrtasks-table td:nth-child(8) {
+    display: none;
+  }
+}
+
+/* <= 992px: hide Submission only */
+@media (max-width: 992px) {
+  .mgrtasks-table th:nth-child(10),
+  .mgrtasks-table td:nth-child(10) {
+    display: none;
+  }
+}
+
+/* <= 768px: hide GitHub only */
+@media (max-width: 768px) {
+  .mgrtasks-table th:nth-child(9),
+  .mgrtasks-table td:nth-child(9) {
+    display: none;
+  }
+}
+
+/* <= 640px: hide Project only */
+@media (max-width: 640px) {
+  .mgrtasks-table th:nth-child(2),
+  .mgrtasks-table td:nth-child(2) {
+    display: none;
+  }
+}
+
+.mgr-title-text {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* when expanded, show full text */
+.mgr-title-btn.is-expanded .mgr-title-text {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
