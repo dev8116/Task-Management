@@ -5,6 +5,22 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GE
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Sanitize text: allow only letters, numbers, spaces, period, comma and apostrophe
+const sanitizeAndLimit = (text, maxWords = 100) => {
+  if (!text) return "";
+  let s = String(text);
+  // normalize whitespace
+  s = s.replace(/\r?\n|\r|\t/g, " ");
+  // remove any character that is not a letter, number, space, period, comma or apostrophe
+  s = s.replace(/[^A-Za-z0-9\s\.,']/g, "");
+  // collapse multiple spaces
+  s = s.replace(/\s+/g, " ").trim();
+  if (!s) return "";
+  const parts = s.split(" ");
+  if (parts.length <= maxWords) return s;
+  return parts.slice(0, maxWords).join(" ");
+};
+
 const callGemini = async (prompt, { retries = 2 } = {}) => {
   let apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("Missing GEMINI_API_KEY in environment");
@@ -67,14 +83,15 @@ exports.generateProjectDescription = async (req, res) => {
     if (!name) return res.status(400).json({ message: "Project name is required." });
 
     const prompt = `
-You improve project descriptions. Return a concise, professional description (2-4 sentences).
+  You improve project descriptions. Produce exactly 100 words. Use only letters, numbers, spaces and the punctuation characters: period (.), comma (,) and apostrophe ('). Do not use any other special characters. Return a concise, professional description (2-4 sentences). Do not include headers, lists, or code blocks.
 
-Project name: ${name}
-Notes: ${description}
+  Project name: ${name}
+  Notes: ${description}
     `.trim();
 
     const content = await callGemini(prompt);
-    res.json({ description: content });
+    const sanitized = sanitizeAndLimit(content, 100);
+    res.json({ description: sanitized });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -86,15 +103,16 @@ exports.generateTaskSuggestion = async (req, res) => {
     if (!title) return res.status(400).json({ message: "Task title is required." });
 
     const prompt = `
-You write task details. Return a helpful task description with clear steps. 2-5 bullet points max.
+  You write task details. Produce exactly 100 words. Use only letters, numbers, spaces and the punctuation characters: period (.), comma (,) and apostrophe ('). Do not use any other special characters. Return 2-5 short steps as separate sentences (not bullet points). Each sentence should be concise and actionable. Do not include headers or code blocks.
 
-Task title: ${title}
-Project: ${projectName}
-Notes: ${description}
+  Task title: ${title}
+  Project: ${projectName}
+  Notes: ${description}
     `.trim();
 
     const content = await callGemini(prompt);
-    res.json({ suggestion: content });
+    const sanitized = sanitizeAndLimit(content, 100);
+    res.json({ suggestion: sanitized });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

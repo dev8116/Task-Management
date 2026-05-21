@@ -378,3 +378,176 @@
   overflow: visible;
   text-overflow: clip;
 }
+
+/* ------------------ MODAL STYLES ------------------ */
+.mgr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2,6,23,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.mgr-modal-box {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.12);
+  max-width: 720px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+  border: 1px solid rgba(15,23,42,0.06);
+}
+
+.mgr-modal-lg {
+  max-width: 720px;
+}
+
+.mgr-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(15,23,42,0.06);
+}
+
+.mgr-modal-close {
+  background: transparent;
+  border: 1px solid rgba(15,23,42,0.06);
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mgr-modal-body {
+  padding: 16px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mgr-modal-footer {
+  padding: 12px 18px;
+  border-top: 1px solid rgba(15,23,42,0.06);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.mgr-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mgr-form-row {
+  display: flex;
+  gap: 12px;
+}
+
+/* Inputs in modal */
+.mgr-modal-body input[type="text"],
+.mgr-modal-body input[type="date"],
+.mgr-modal-body input[type="time"],
+.mgr-modal-body select,
+.mgr-modal-body textarea {
+  border: 1px solid #e6e9ef;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--mgr-text);
+  outline: none;
+}
+.mgr-modal-body input:focus,
+.mgr-modal-body select:focus,
+.mgr-modal-body textarea:focus {
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.08);
+  border-color: var(--mgr-primary);
+}
+
+/* Buttons inside modal */
+.mgr-modal-body .mgrtask-btn,
+.mgr-modal-footer .mgrtask-btn {
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.btn-primary {
+  background: var(--mgr-primary);
+  border-color: rgba(37, 99, 235, 0.12);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+}
+.btn-secondary {
+  background: #f8fafc;
+  border: 1px solid rgba(15,23,42,0.06);
+  color: #475569;
+  padding: 7px 12px;
+}
+
+/* Demo (green) button */
+.btn-demo {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #bbf7d0;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+/* small helper text */
+.mgr-modal-body .helper-text {
+  font-size: 12px;
+  color: #64748b;
+}
+
+
+.mgr-inline-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mgr-subtask-card {
+  border: 1px solid var(--mgr-border);
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+/* Demo dropdown */
+.demo-dropdown {
+  position: absolute;
+  right: 0;
+  top: 36px;
+  background: #fff;
+  border: 1px solid var(--mgr-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(2,6,23,0.08);
+  padding: 8px;
+  min-width: 220px;
+  z-index: 10000;
+}
+.demo-dropdown-title {
+  margin: 0 0 8px 0;
+  font-weight: 700;
+  font-size: 13px;
+}
+.demo-dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.demo-dropdown-item:hover { background: #f1f5f9; }
