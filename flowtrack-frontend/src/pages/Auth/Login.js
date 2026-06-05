@@ -39,11 +39,6 @@ const Login = () => {
           <p>Employee Productivity & Project Management</p>
         </div>
 
-        {/* <div className="login-info">
-          <strong>Default Admin:</strong><br />
-          Email: admin@flowtrack.com<br />
-          Password: Admin@123
-        </div> */}
 
         {error && <div className="login-error">{error}</div>}
 

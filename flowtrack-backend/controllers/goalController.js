@@ -24,6 +24,18 @@ const computeGoalProgress = async (goal) => {
   return { progress: 0, totalTasks: 0, completedTasks: 0 };
 };
 
+const canManageGoal = (goal, user) => {
+  if (!goal || !user) return false;
+  if (user.role === "admin") return true;
+  if (user.role === "manager") {
+    return (
+      goal.team?.toString() === user._id.toString() ||
+      goal.owner?.toString() === user._id.toString()
+    );
+  }
+  return false;
+};
+
 // @desc Create Goal
 exports.createGoal = async (req, res) => {
   try {
@@ -101,13 +113,20 @@ exports.getGoalById = async (req, res) => {
 // @desc Update Goal
 exports.updateGoal = async (req, res) => {
   try {
+    const goal = await Goal.findById(req.params.id);
+    if (!goal) return res.status(404).json({ message: "Goal not found" });
+
+    if (!canManageGoal(goal, req.user)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
     const updates = { ...req.body };
 
     if (updates.tasks && !Array.isArray(updates.tasks)) updates.tasks = [];
     if (updates.keyResults && !Array.isArray(updates.keyResults)) updates.keyResults = [];
 
-    const goal = await Goal.findByIdAndUpdate(req.params.id, updates, { new: true });
-    if (!goal) return res.status(404).json({ message: "Goal not found" });
+    Object.assign(goal, updates);
+    await goal.save();
 
     res.json(goal);
   } catch (error) {
@@ -118,8 +137,14 @@ exports.updateGoal = async (req, res) => {
 // @desc Delete Goal
 exports.deleteGoal = async (req, res) => {
   try {
-    const goal = await Goal.findByIdAndDelete(req.params.id);
+    const goal = await Goal.findById(req.params.id);
     if (!goal) return res.status(404).json({ message: "Goal not found" });
+
+    if (!canManageGoal(goal, req.user)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    await Goal.findByIdAndDelete(req.params.id);
     res.json({ message: "Goal deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });
