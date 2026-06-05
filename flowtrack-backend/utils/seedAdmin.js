@@ -3,24 +3,33 @@ const bcrypt = require('bcryptjs');
 
 const seedAdmin = async () => {
   try {
-    const adminExists = await User.findOne({ email: 'admin@flowtrack.com' });
+    const adminEmail = process.env.ADMIN_SEED_EMAIL;
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD;
+
+    if (!adminEmail || !adminPassword) {
+      console.log("Admin seeding skipped: ADMIN_SEED_EMAIL/ADMIN_SEED_PASSWORD not set");
+      return;
+    }
+
+    const normalizedEmail = String(adminEmail).trim().toLowerCase();
+    const adminExists = await User.findOne({ email: normalizedEmail });
     if (!adminExists) {
-      const hashedPassword = await bcrypt.hash('Admin@123', 12);
+      const hashedPassword = await bcrypt.hash(String(adminPassword), 12);
       await User.create({
-        name: 'Super Admin',
-        email: 'admin@flowtrack.com',
+        name: process.env.ADMIN_SEED_NAME || "Admin",
+        email: normalizedEmail,
         password: hashedPassword,
-        role: 'admin',
-        department: 'Administration',
-        phone: '0000000000',
+        role: "admin",
+        department: process.env.ADMIN_SEED_DEPARTMENT || "Administration",
+        phone: process.env.ADMIN_SEED_PHONE || "",
         isActive: true,
       });
-      console.log('Default admin account created: admin@flowtrack.com / Admin@123');
+      console.log("Admin account created from seed configuration");
     } else {
-      console.log('Admin account already exists');
+      console.log("Admin account already exists");
     }
   } catch (error) {
-    console.error('Error seeding admin:', error.message);
+    console.error("Error seeding admin:", error.message);
   }
 };
 

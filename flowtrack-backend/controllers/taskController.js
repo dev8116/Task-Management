@@ -347,16 +347,12 @@ exports.updateTask = async (req, res) => {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ success: false, message: "Task not found" });
 
-    if (task.status === "completed") {
-      return res.status(400).json({ success: false, message: "Completed tasks cannot be edited" });
+    if (!canManageTask(task, req.user)) {
+      return res.status(403).json({ success: false, message: "Access denied" });
     }
 
-    if (
-      req.user.role === "manager" &&
-      (task.assignedManager?.toString() !== req.user._id.toString() ||
-        task.createdBy?.toString() !== req.user._id.toString())
-    ) {
-      return res.status(403).json({ success: false, message: "Access denied" });
+    if (task.status === "completed") {
+      return res.status(400).json({ success: false, message: "Completed tasks cannot be edited" });
     }
 
     const {
@@ -560,6 +556,10 @@ exports.updateChecklist = async (req, res) => {
       });
     }
 
+    if (!canManageTask(task, req.user)) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
     const { checklist } = req.body;
 
     task.checklist = normalizeChecklist(checklist);
@@ -592,6 +592,10 @@ exports.updateSubtasks = async (req, res) => {
         success: false,
         message: "Task not found",
       });
+    }
+
+    if (!canManageTask(task, req.user)) {
+      return res.status(403).json({ success: false, message: "Access denied" });
     }
 
     const { subtasks } = req.body;
@@ -714,11 +718,7 @@ exports.reviewSubmission = async (req, res) => {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ success: false, message: "Task not found" });
 
-    if (
-      req.user.role === "manager" &&
-      (task.assignedManager?.toString() !== req.user._id.toString() ||
-        task.createdBy?.toString() !== req.user._id.toString())
-    ) {
+    if (!canManageTask(task, req.user)) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
@@ -809,11 +809,7 @@ exports.deleteTask = async (req, res) => {
       return res.status(400).json({ success: false, message: "Completed tasks cannot be deleted" });
     }
 
-    if (
-      req.user.role === "manager" &&
-      (task.assignedManager?.toString() !== req.user._id.toString() ||
-        task.createdBy.toString() !== req.user._id.toString())
-    ) {
+    if (!canManageTask(task, req.user)) {
       return res.status(403).json({ success: false, message: "You can only delete your own tasks" });
     }
 

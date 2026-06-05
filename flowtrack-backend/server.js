@@ -29,9 +29,9 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
-// Connect DB then seed default admin + start scheduler
+// Connect DB then seed configured admin (if enabled) + start scheduler
 connectDB().then(() => {
-  seedAdmin(); // creates admin@flowtrack.com / Admin@123 if it doesn't exist
+  seedAdmin();
   startAttendanceScheduler(); // ✅ start after DB is connected
 });
 
